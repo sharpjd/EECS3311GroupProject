@@ -11,5 +11,8 @@ public class DBFacade {
 		operator = new DBOperator();
 	}
 	
+	public void insertActor(String actor) {
+		operator.insertActor(actor);
+	}
 
 }

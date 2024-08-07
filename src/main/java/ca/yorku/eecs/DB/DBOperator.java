@@ -11,17 +11,20 @@ class DBOperator {
 	private String uriDb;
 	
 	DBOperator() {
-		uriDb = "bolt://localhost:7474/browser";
+		uriDb = "bolt://localhost:7687";
 		Config config = Config.builder().withoutEncryption().build();
 		driver = GraphDatabase.driver(uriDb, AuthTokens.basic("neo4j", "12345678"), config);
 	}
 	
-	void insertMovie(String movie) {
+	void insertActor(String actor) {
+		
+		System.out.println("insert an actor!");
+		/*
 		try (Session session = driver.session()){
 			
 			Transaction transaction = session.beginTransaction();
 		    {
-		       Statement query = new Statement( "TODO: a Cypher statement/query", Values.parameters("message", movie) );
+		       Statement query = new Statement( "TODO: a Cypher statement/query", Values.parameters("message", actor) );
 
 		       StatementResult result = transaction.run( query );
 		       transaction.success(); // mark success, actually commit will happen in transaction.close()
@@ -30,6 +33,7 @@ class DBOperator {
 		    }
 		    
 		}
+		*/
 	}
 	
 	
