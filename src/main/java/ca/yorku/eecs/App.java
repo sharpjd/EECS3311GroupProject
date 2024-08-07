@@ -49,6 +49,10 @@ class AddActorHttpHandler implements HttpHandler {
             // Read the request body
             String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             
+            System.out.println("Request body:" + requestBody);
+            
+            dbFacade.insertActor(requestBody);
+            
             // Respond with a success message
             String response = "PUT request received. Data: " + requestBody;
             exchange.sendResponseHeaders(200, response.getBytes().length);
