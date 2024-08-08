@@ -71,7 +71,7 @@ class AddActorHttpHandler implements HttpHandler {
 	        			String actorName = jsonObject.getString("name");
 	        			String actorId = jsonObject.getString("actorId");
 	        			
-	        			//TODO: actually add the actor
+	        			db.addActor(actorName, actorId);
 	        			
 	        		} catch (JSONException e) {
 	        			e.printStackTrace();
@@ -98,6 +98,7 @@ class AddActorHttpHandler implements HttpHandler {
 			e.printStackTrace();
 		}
 		
+		System.out.println("Handle AddActor finished");
 		
 	}
 	

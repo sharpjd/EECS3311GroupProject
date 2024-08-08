@@ -63,7 +63,29 @@ public class DBNew {
 		return actors;
 	}
 	
-	
+	public void addActor(String actorName, String actorId) {
+		try(Session session = DBUtil.getSession()){
+			
+			Transaction transaction = session.beginTransaction();
+			
+			Statement query = new Statement("CREATE(a:actor {name:$name, actorId:$actorId})",
+					Map.of("name", actorName, "actorId", actorId));
+			
+			StatementResult result = transaction.run(query);
+			
+			//seems to get hung here
+						
+			/*
+			 * for whatever reason, this causes the function to hang
+			 * System.out.println("Statement result: " + result.single().get(0).asString());
+			 * 
+			 * and the below statement is also require in order for the function to not hang
+			 */
+			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
+			
+			transaction.success();
+		}
+	}
 	
 	
 	
