@@ -11,7 +11,7 @@ public class DBUtil {
 	
 	public static void connect(String uri, String user, String password) {
 		Config config = Config.builder().withoutEncryption().build();
-		driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
+		driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password), config);
 	}
 	
 	public static Session getSession() {
