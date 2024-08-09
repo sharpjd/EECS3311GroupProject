@@ -116,5 +116,89 @@ public class DBNew {
 
         }
     }
-	
+
+    public String getActorById(String actorID) {
+	    try (Session session = DBUtil.getSession()) {    
+                StatementResult result = session.run("MATCH (a:actor {actorId: $actorId}) RETURN a.name AS name, a.actorId AS actorId", Map.of("actorId", actorId));
+
+		if (result.hasNext()) {
+			Record record = result.next();
+                	JSONObject jsonObject = new JSONObject();
+                	jsonObject.put("name", record.get("name").asString());
+                	jsonObject.put("actorId", record.get("actorId").asString());
+                	return jsonObject.toString();
+		}
+
+		//case if actor is not found
+		else {
+			return null;
+		}
+        }
+    }
+
+    public String getMovieById(String movieID) {
+	    try (Session session = DBUtil.getSession()) {    
+                StatementResult result = session.run("MATCH (m:movie {movieId: $movieId}) RETURN m.name AS name, m.movieId AS movieId", Map.of("movieId", movieId));
+
+		if (result.hasNext()) {
+			Record record = result.next();
+                	JSONObject jsonObject = new JSONObject();
+                	jsonObject.put("name", record.get("name").asString());
+                	jsonObject.put("movieId", record.get("movieId").asString());
+                	return jsonObject.toString();
+		}
+
+		//case if movie is not found
+		else {
+			return null;
+		}
+        }
+    }
+
+    public boolean hasActedInRelationship(String actorId, String movieId) {
+    try (Session session = DBUtil.getSession()) {
+        StatementResult result = session.run(
+            "MATCH (a:actor {actorId: $actorId})-[:ACTED_IN]->(m:movie {movieId: $movieId}) " +
+            "RETURN count(*) > 0 AS hasRelationship",
+            Map.of("actorId", actorId, "movieId", movieId)
+        );
+        if (result.hasNext()) {
+            return result.next().get("hasRelationship").asBoolean();
+        } else {
+            return false; // there was no relationship found between the actor and the movie
+        }
+    }
+    }
+
+   public int computeBaconNumber(String actorId) {
+        try (Session session = DBUtil.getSession()) {
+            StatementResult result = session.run(
+                    "MATCH (bacon:actor {actorId: 'nm0000102'}), (actor:actor {actorId: $actorId}), " +
+                    "p = shortestPath((bacon)-[:ACTED_IN*]-(actor)) " +
+                    "RETURN length(p)/2 AS baconNumber",
+                    Map.of("actorId", actorId)
+            );
+            if (result.hasNext()) {
+                return result.next().get("baconNumber").asInt();
+            } else {
+                return -1; // there was no path found or the actor is not connected to Kevin Bacon
+            }
+        }
+    }
+
+   public List<String> computeBaconPath(String actorId) {
+        try (Session session = DBUtil.getSession()) {
+            StatementResult result = session.run(
+                    "MATCH (bacon:actor {actorId: 'nm0000102'}), (actor:actor {actorId: $actorId}), " +
+                    "p = shortestPath((bacon)-[:ACTED_IN*]-(actor)) " +
+                    "RETURN [n IN nodes(p) | coalesce(n.name, n.title)] AS path",
+                    Map.of("actorId", actorId)
+            );
+            if (result.hasNext()) {
+                return result.next().get("path").asList(Value::asString);
+            } else {
+                return null; // there was no path found or the actor is not connected to Kevin Bacon
+            }
+        }
+    }
 }
