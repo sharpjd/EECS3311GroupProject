@@ -32,41 +32,45 @@ public class DBNew {
 	}
 	
 	/**
-	 * Sets the rating for every Movie node in the DB.
-	 * @param defaultRating
-	 */
-	public void addRatingToAllMovies(String defaultRating) {
-		try(Session session = DBUtil.getSession()){
-			session.run("MATCH (m:Movie) SET m.rating = $rating", Map.of("rating", String.format("%.2f", defaultRating)));
-		}
-	}
-	
-	/**
 	 * Sets the rating of a Movie with the specified title.
 	 * @param movieTitle
 	 * @param newRating
 	 */
-	public void updateMovieRating(String movieTitle, String newRating) {
+	public void addMovieRating(String movieId, String newRating) {
 		try(Session session = DBUtil.getSession()){
-			session.run("MATCH (m:Movie {title: $title}) SET m.rating = $rating", Map.of("title", movieTitle, "rating", String.format("rating", String.format("%.1f", newRating))));
+			Transaction tx = session.beginTransaction();
+			Statement query = new Statement("MATCH (m:Movie {movieId: $movieId}) SET m.rating = $rating", 
+					Map.of("movieId", movieId, "rating", String.format("%.1f", newRating)));
+			StatementResult result = tx.run(query);
+			
+			System.out.println("Statement result: " + result.consume());
+			tx.success();
 		}
 	}
+
 	
 	/**
 	 * Get a list of the titles of all movies that are above a certain rating.
 	 * @param minRating
 	 * @return
 	 */
-	public List<String> getMoviesWithRating(String minRating) {
-		List<String> movies = new ArrayList<>();
+	public String getMoviesWithRating(String minRating) {
 		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (m:Movie) WHERE m.rating >= $rating RETURN m.title AS title", Map.of("rating", String.format("%.1f", minRating)));
+			StatementResult result = session.run("MATCH (m:Movie) WHERE m.rating >= $rating RETURN m.name AS name", Map.of("rating", String.format("%.1f", minRating)));
+			JSONArray jsonArray = new JSONArray();
 			while(result.hasNext()) {
 				Record record = result.next();
-				movies.add(record.get("title").asString());
+				JSONObject jsonObject = new JSONObject();
+				try {
+					jsonObject.put("name", record.get("name").asString());
+					jsonObject.put("movieId", record.get("movieId").asString());
+				}catch(JSONException e) {
+					e.printStackTrace();
+				}
+				jsonArray.put(jsonObject);
 			}
+			return jsonArray.length() > 0 ? jsonArray.toString() : null;
 		}
-		return movies;
 	}
 	
 	/**
@@ -74,17 +78,23 @@ public class DBNew {
 	 * @param year
 	 * @return
 	 */
-	public List<String> getMoviesByReleaseYear(String year){
-		List<String> movies = new ArrayList<>();
+	public String getMoviesByReleaseYear(String year){
 		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (m:Movie) WHERE m.release = $release RETURN m.title AS title", Map.of("release", year));
+			StatementResult result = session.run("MATCH (m:Movie) WHERE m.release = $release RETURN m.name AS name", Map.of("release", year));
+			JSONArray jsonArray = new JSONArray();
 			while(result.hasNext()) {
 				Record record = result.next();
-				movies.add(record.get("title").asString());
+				JSONObject jsonObject = new JSONObject();
+				try {
+					jsonObject.put("name", record.get("name").asString());
+					jsonObject.put("movieId", record.get("movieId").asString());
+				} catch(JSONException e) {
+					e.printStackTrace();
+				}
+				jsonArray.put(jsonObject);
 			}
-					
+			return jsonArray.length() > 0 ? jsonArray.toString() : null;
 		}
-		return movies;
 	}
 	
 	/**
@@ -104,16 +114,23 @@ public class DBNew {
 	 * @param award The name of the award
 	 * @return
 	 */
-	public List<String> getActorsByAward(String award){
-		List<String> actors = new ArrayList<>();
+	public String getActorsByAward(String award){
 		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (a:Actor) WHERE $award IN a.awards RETURN a.name AS name", Map.of("award", award));
+			StatementResult result = session.run("MATCH (a:Actor) WHERE $award IN a.awards RETURN a.name AS name, a.actorId AS actorId", Map.of("award", award));
+			JSONArray jsonArray = new JSONArray();
 			while(result.hasNext()) {
 				Record record = result.next();
-				actors.add(record.get("name").asString());
+				JSONObject jsonObject = new JSONObject();
+				try {
+					jsonObject.put("name", record.get("name").asString());
+					jsonObject.put("actorId", record.get("actorId").asString());
+				} catch(JSONException e) {
+					e.printStackTrace();
+				}
+				jsonArray.put(jsonObject);
 			}
+			return jsonArray.length() > 0 ? jsonArray.toString() : null;
 		}
-		return actors;
 	}
 	
 	/**
