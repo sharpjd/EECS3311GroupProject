@@ -102,10 +102,14 @@ public class DBNew {
 	 * @param actor the name of the actor
 	 * @param awards a list containing the names of awards
 	 */
-	public void addAwards(String actor, List<String> awards) {
+	public void addAward(String actorId, String award) {
 		try(Session session = DBUtil.getSession()){
-			session.run("MATCH (a:Actor {name: $name}) SET a.awards = $awards",
-	                Map.of("name", actor, "awards", awards));	
+			Transaction tx = session.beginTransaction();
+			Statement query = new Statement("MATCH (a:Actor {actorId: $actorId}) SET a.awards += $award",
+	                Map.of("actorId", actorId, "award", award));	
+			StatementResult result = tx.run(query);
+			System.out.println("Statement result: " + result.consume());
+			tx.success();
 		}
 	}
 	
