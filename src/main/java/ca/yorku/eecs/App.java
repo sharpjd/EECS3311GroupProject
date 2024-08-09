@@ -48,6 +48,11 @@ public class App //starter code
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
         server.createContext("/api/v1/addMovie", new AddMovieHttpHandler(db));
         server.createContext("/api/v1/addRelationship", new AddRelationShipHttpHandler(db));
+		server.createContext("/api/v1/getActor", new GetActorHttpHandler(db));
+		server.createContext("/api/v1/getMovie", new GetMovieHttpHandler(db));
+		server.createContext("/api/v1/hasRelationship", new HasRelationshipHttpHandler(db));
+		server.createContext("/api/v1/computeBaconNumber", new ComputeBaconNumberHttpHandler(db));
+		server.createContext("/api/v1/computeBaconPath", new ComputeBaconPathHttpHandler(db));
     }
     
 }
@@ -389,6 +394,408 @@ class ResponseSender {
         os.write(response.getBytes());
         os.close();
 	}
+}
+
+class AddMovieHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public AddMovieHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) {
+        try {
+            System.out.println("Got an AddMovie request!");
+
+            if ("PUT".equals(exchange.getRequestMethod())) {
+
+                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                System.out.println("Request body:" + requestBody);
+
+                JSONObject jsonObject = new JSONObject(requestBody);
+                String movieId = jsonObject.getString("movieId");
+                String name = jsonObject.getString("name");
+                String release = jsonObject.getString("release");
+
+                db.addMovie(movieId, name, release);
+
+                // Respond with success message
+                String response = "PUT request successful. Data: " + requestBody;
+                sendResponseAndClose(exchange, 200, response);
+
+            } else {
+                sendResponseAndClose(exchange, 405, "Only PUT is supported");
+            }
+
+        } catch (JSONException e) {
+            sendResponseAndClose(exchange, 400, "Invalid JSON format");
+        } 
+	
+	catch (IOException e) {
+            sendResponseAndClose(exchange, 500, "Internal Server Error");
+        }
+
+        System.out.println("Handle AddMovie finished");
+
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+
+class AddRelationshipHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public AddRelationshipHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) {
+        try {
+            if ("PUT".equals(exchange.getRequestMethod())) {
+                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                JSONObject jsonObject = new JSONObject(requestBody);
+
+                if (!jsonObject.has("actorId") || !jsonObject.has("movieId")) {
+                    sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
+                    return;
+                }
+
+                String actorId = jsonObject.getString("actorId");
+                String movieId = jsonObject.getString("movieId");
+
+                // make sure that the actor and movie exist
+                String actor = db.getActorById(actorId);
+                String movie = db.getMovieById(movieId);
+
+                if (actor == null) {
+                    sendResponseAndClose(exchange, 404, "Actor not found");
+                    return;
+                }
+
+                if (movie == null) {
+                    sendResponseAndClose(exchange, 404, "Movie not found");
+                    return;
+                }
+
+                db.addActedInRelationship(actorId, movieId);
+
+                sendResponseAndClose(exchange, 200, "Relationship added successfully");
+
+            } else {
+                sendResponseAndClose(exchange, 405, "Only PUT is supported");
+            }
+
+        } catch (JSONException e) {
+            sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
+        } catch (Exception e) {
+            sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+        }
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+
+class GetActorHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public GetActorHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String actorId = params.get("actorId");
+
+            if (actorId == null || actorId.isEmpty()) {
+                sendResponseAndClose(exchange, 400, "Missing required field: actorId");
+                return;
+            }
+
+            try {
+                String actorJson = db.getActorById(actorId);
+
+                if (actorJson != null) {
+                    sendResponseAndClose(exchange, 200, actorJson);
+                } else {
+                    sendResponseAndClose(exchange, 404, "Actor not found");
+                }
+            } catch (Exception e) {
+                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }
+        } else {
+            sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            result.put(entry[0], entry[1]);
+        }
+        return result;
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+
+class GetMovieHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public GetMovieHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String movieId = params.get("movieId");
+
+            if (movieId == null || movieId.isEmpty()) {
+                sendResponseAndClose(exchange, 400, "Missing required field: movieId");
+                return;
+            }
+
+            try {
+                String movieJson = db.getMovieById(movieId);
+
+                if (movieJson != null) {
+                    sendResponseAndClose(exchange, 200, movieJson);
+                } else {
+                    sendResponseAndClose(exchange, 404, "Movie not found");
+                }
+            } catch (Exception e) {
+                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }
+        } else {
+            sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            result.put(entry[0], entry[1]);
+        }
+        return result;
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+
+class HasRelationshipHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public HasRelationshipHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String actorId = params.get("actorId");
+            String movieId = params.get("movieId");
+
+            if (actorId == null || actorId.isEmpty() || movieId == null || movieId.isEmpty()) {
+                sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
+                return;
+            }
+
+            try {
+                String actor = db.getActorById(actorId);
+                String movie = db.getMovieById(movieId);
+
+                if (actor == null) {
+                    sendResponseAndClose(exchange, 404, "Actor not found");
+                    return;
+                }
+
+                if (movie == null) {
+                    sendResponseAndClose(exchange, 404, "Movie not found");
+                    return;
+                }
+
+                boolean hasRelationship = db.hasActedInRelationship(actorId, movieId);
+                JSONObject jsonResponse = new JSONObject();
+                jsonResponse.put("actorId", actorId);
+                jsonResponse.put("movieId", movieId);
+                jsonResponse.put("hasRelationship", hasRelationship);
+
+                sendResponseAndClose(exchange, 200, jsonResponse.toString());
+            } catch (Exception e) {
+                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }
+        } else {
+            sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            result.put(entry[0], entry[1]);
+        }
+        return result;
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+
+class ComputeBaconNumberHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public ComputeBaconNumberHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String actorId = params.get("actorId");
+
+            if (actorId == null || actorId.isEmpty()) {
+                sendResponseAndClose(exchange, 400, "Missing required field: actorId");
+                return;
+            }
+
+            try {
+                int baconNumber = db.computeBaconNumber(actorId);
+
+                if (baconNumber == -1) {
+                    sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
+                    return;
+                }
+
+                JSONObject jsonResponse = new JSONObject();
+                jsonResponse.put("actorId", actorId);
+                jsonResponse.put("baconNumber", baconNumber);
+
+                sendResponseAndClose(exchange, 200, jsonResponse.toString());
+            } catch (Exception e) {
+                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }
+        } else {
+            sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            result.put(entry[0], entry[1]);
+        }
+        return result;
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+
+class ComputeBaconPathHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public ComputeBaconPathHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String actorId = params.get("actorId");
+
+            if (actorId == null || actorId.isEmpty()) {
+                sendResponseAndClose(exchange, 400, "Missing required field: actorId");
+                return;
+            }
+
+            try {
+                List<String> baconPath = db.computeBaconPath(actorId);
+
+                if (baconPath == null || baconPath.isEmpty()) {
+                    sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
+                    return;
+                }
+
+                JSONObject jsonResponse = new JSONObject();
+                jsonResponse.put("actorId", actorId);
+                jsonResponse.put("baconPath", baconPath);
+
+                sendResponseAndClose(exchange, 200, jsonResponse.toString());
+            } catch (Exception e) {
+                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }
+        } else {
+            sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            result.put(entry[0], entry[1]);
+        }
+        return result;
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
 }
 
 class JSONValidationData {
