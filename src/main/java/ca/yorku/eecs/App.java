@@ -55,6 +55,7 @@ public class App //starter code
 class AddActorHttpHandler implements HttpHandler {
 
 	private DBNew db;
+	private ResponseSender responseSender = new ResponseSender();
 	
 	public AddActorHttpHandler(DBNew db) {
 		this.db = db;
@@ -88,19 +89,19 @@ class AddActorHttpHandler implements HttpHandler {
 	            	
 	            	//respond with success message
 	                String response = "PUT request successful. Data: " + requestBody;
-	                sendResponseAndClose(exchange, 200, response);
+	                responseSender.sendResponseAndClose(exchange, 200, response);
 	            } else {
 	            	
 	            	//respond with fail message
 	            	String response = "PUT request failed with the following message:\n"
 	            			+ validation.message
 	            			+ " Data: " + requestBody;
-	            	sendResponseAndClose(exchange, 400, response);
+	            	responseSender.sendResponseAndClose(exchange, 400, response);
 	            }
 	            
 	            
 	        } else {
-	            sendResponseAndClose(exchange, 405, "Only PUT is supported");
+	        	responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
 	        }
 			
 		} catch(IOException e) {
@@ -144,18 +145,12 @@ class AddActorHttpHandler implements HttpHandler {
 		
 	}
 	
-	private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(200, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-	}
-	
 }
 
 class AddMovieHttpHandler implements HttpHandler {
 
 	private DBNew db;
+	private ResponseSender responseSender = new ResponseSender();
 	
 	public AddMovieHttpHandler(DBNew db) {
 		this.db = db;
@@ -191,19 +186,19 @@ class AddMovieHttpHandler implements HttpHandler {
 	            	
 	            	//respond with success message
 	                String response = "PUT request successful. Data: " + requestBody;
-	                sendResponseAndClose(exchange, 200, response);
+	                responseSender.sendResponseAndClose(exchange, 200, response);
 	            } else {
 	            	
 	            	//respond with fail message
 	            	String response = "PUT request failed with the following message:\n"
 	            			+ validation.message
 	            			+ " Data: " + requestBody;
-	            	sendResponseAndClose(exchange, 400, response);
+	            	responseSender.sendResponseAndClose(exchange, 400, response);
 	            }
 	            
 	            
 	        } else {
-	            sendResponseAndClose(exchange, 405, "Only PUT is supported");
+	        	responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
 	        }
 			
 		} catch(IOException e) {
@@ -248,17 +243,19 @@ class AddMovieHttpHandler implements HttpHandler {
 		
 	}
 	
-	private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(200, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-	}
+	
 	
 }
 
 
-
+class ResponseSender {
+	public void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+	}
+}
 
 class JSONValidationData {
 	
