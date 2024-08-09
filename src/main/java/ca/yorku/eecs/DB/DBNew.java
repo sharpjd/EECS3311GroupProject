@@ -105,6 +105,32 @@ public class DBNew {
 		}
 	}
 	
+	public boolean actorExists(String actorId) {
+		try(Session session = DBUtil.getSession()){
+			
+			Transaction transaction = session.beginTransaction();
+			
+			Statement query = new Statement("MATCH(a: actor) WHERE a.actorId = $actorId RETURN a;",
+					Map.of("actorId", actorId));
+			
+			StatementResult result = transaction.run(query);
+						
+			/*
+			 * for whatever reason, this causes the function to hang
+			 * System.out.println("Statement result: " + result.single().get(0).asString());
+			 * 
+			 * and the below statement is also require in order for the function to not hang
+			 */
+			
+			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
+			
+			transaction.success();
+			
+			if(result.list().size() != 0) return true;
+			else return false;
+		}
+	}
+	
 	public void addMovie(String movieId, String name, String release) {
         try (Session session = DBUtil.getSession()) {
             Transaction tx = session.beginTransaction();
@@ -119,6 +145,32 @@ public class DBNew {
             tx.success();
         }
     }
+	
+	public boolean movieExists(String movieId) {
+		try(Session session = DBUtil.getSession()){
+			
+			Transaction transaction = session.beginTransaction();
+			
+			Statement query = new Statement("MATCH(m: movie) WHERE m.movieId = movieId RETURN m;",
+					Map.of("movieId", movieId));
+			
+			StatementResult result = transaction.run(query);
+						
+			/*
+			 * for whatever reason, this causes the function to hang
+			 * System.out.println("Statement result: " + result.single().get(0).asString());
+			 * 
+			 * and the below statement is also require in order for the function to not hang
+			 */
+			
+			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
+			
+			transaction.success();
+			
+			if(result.list().size() != 0) return true;
+			else return false;
+		}
+	}
     
     public void addActedInRelationship(String actorId, String movieId) {
         try (Session session = DBUtil.getSession()) {
@@ -139,6 +191,30 @@ public class DBNew {
                 tx.success();
 
         }
+    }
+    
+    //Neo4j doesn't support constraints for duplicate relationships so this is necessary
+    public boolean actedInRelationshipExists(String actorId, String movieId) {
+    	try (Session session = DBUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
+            
+            Statement query = new Statement( //WARNING: spaces can make or break the syntax, add one after each line
+            		"MATCH (a:actor), (m:movie) "
+            		+ "WHERE a.actorId = $actorId AND m.movieId = $movieId AND (a)-[:ACTED_IN]->(m) "
+            		+ "RETURN *; ", 
+                   Map.of("actorId", actorId, "movieId", movieId)
+                   );
+            
+            StatementResult result = tx.run(query);
+            
+            System.out.println("Statement result: " + result.consume());
+            
+            tx.success();
+            
+            if(result.list().size() != 0) return true;
+			else return false;
+
+    	}
     }
 	
 }

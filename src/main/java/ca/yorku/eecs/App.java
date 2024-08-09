@@ -47,6 +47,7 @@ public class App //starter code
         
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
         server.createContext("/api/v1/addMovie", new AddMovieHttpHandler(db));
+        server.createContext("/api/v1/addRelationship", new AddRelationShipHttpHandler(db));
     }
     
 }
@@ -242,9 +243,142 @@ class AddMovieHttpHandler implements HttpHandler {
         return new JSONValidationData(valid, message.toString());
 		
 	}
+}
+
+class AddRelationShipHttpHandler implements HttpHandler {
+
+	private DBNew db;
+	private ResponseSender responseSender = new ResponseSender();
 	
+	public AddRelationShipHttpHandler(DBNew db) {
+		this.db = db;
+	}
 	
+	@Override
+	public void handle(HttpExchange exchange) {
+		
+		try {
+			System.out.println("Got an AddRelationship request!");
+			
+			if ("PUT".equals(exchange.getRequestMethod())) {
+				
+	            String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+	            System.out.println("Request body:" + requestBody);
+	            
+	            JSONValidationData validation = validateJSON(requestBody);
+	            
+	            if(validation.valid) {
+	            	
+	            	try {
+	        			JSONObject jsonObject = new JSONObject(requestBody);
+	        			String actorId = jsonObject.getString("actorId");
+	        			String movieId = jsonObject.getString("movieId");
+	        			
+	        			String movieRelease = jsonObject.optString("release"); //can be empty
+	        			
+	        			boolean actorExists = db.actorExists(actorId);
+	        			System.out.println(actorExists);
+	        			boolean movieExists = db.movieExists(movieId);
+	        			System.out.println(movieExists);
+	        			
+	        			boolean relationAlreadyExists = db.actedInRelationshipExists(actorId, movieId);
+	        			
+	        			System.out.println(relationAlreadyExists);
+	        			
+	        			StringBuilder response = new StringBuilder();
+	        			
+	        			if(!actorExists || !movieExists || relationAlreadyExists) {
+	        				response.append("PUT request failed with the following message:\n");
+	        				
+	        				if(!actorExists) {
+		        				response.append("the actorId specified does not exist.\n");
+		        			}
+		        			
+		        			if(!movieExists) {
+		        				response.append("the movieId specified does not exist.\n");
+		        			}
+		        			
+		        			if(relationAlreadyExists) {
+		        				response.append("the relationship already exists.\n");
+		        			}
+		        			
+		        			response.append("Data: ");
+		        			response.append(requestBody);
+		        			response.append("\n");
+		        			
+		        			if(!actorExists || !movieExists)
+		        				responseSender.sendResponseAndClose(exchange, 404, response.toString());
+		        			else if(relationAlreadyExists)
+		        				responseSender.sendResponseAndClose(exchange, 400, response.toString());
+		        			else 
+		        				throw new RuntimeException("why are we here");
+		        			
+	        			} else {
+        					db.addActedInRelationship(actorId, movieId);
+	        			}
+	        			
+	        		} catch (JSONException e) {
+	        			e.printStackTrace();
+	        		}
+	            	
+	            	//respond with success message
+	                String response = "PUT request successful. Data: " + requestBody;
+	                responseSender.sendResponseAndClose(exchange, 200, response);
+	            } else {
+	            	
+	            	//respond with fail message
+	            	String response = "PUT request failed with the following message:\n"
+	            			+ validation.message
+	            			+ " Data: " + requestBody;
+	            	responseSender.sendResponseAndClose(exchange, 400, response);
+	            }
+	            
+	            
+	        } else {
+	        	responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
+	        }
+			
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("Handle AddMovie finished");
+		
+	}
 	
+	public JSONValidationData validateJSON(String json) {
+		
+		StringBuilder message = new StringBuilder();
+		boolean valid = true;
+		
+		JSONObject jsonObject;
+        String actorId = null;
+        String movieId = null;
+        //skip checking for release date because that's optional
+        
+        try {
+			jsonObject = new JSONObject(json);
+			actorId = jsonObject.optString("actorId");
+			movieId = jsonObject.optString("movieId");
+			
+			if(actorId == null || actorId.isEmpty()) {
+	        	valid = false;
+	        	message.append("Validation failed: actorId is empty or not found\n");
+	        }
+			
+			if(movieId == null || movieId.isEmpty()) {
+	        	valid = false;
+	        	message.append("Validation failed: movieId is empty or not found\n");
+	        }
+			
+		} catch (JSONException e) {
+			message.append("Validation failed: JSON syntax error: " + e.getMessage());
+			return new JSONValidationData(false, message.toString());
+		}
+        
+        return new JSONValidationData(valid, message.toString());
+		
+	}
 }
 
 
