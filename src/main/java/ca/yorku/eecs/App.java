@@ -62,6 +62,43 @@ public class App //starter code
 }
 
 /**
+ * Data class for info about JSON validation. Contains a boolean indicating whether it is valid and a String for additional info about the validation.
+ */
+class JSONValidationData {
+	
+	public final boolean valid;
+	public String message = "default message";
+	
+	public JSONValidationData(boolean valid) {
+		this.valid = valid;
+	}
+	
+	public JSONValidationData(boolean valid, String message) {
+		this.valid = valid;
+		if(message != null) this.message = message;
+	}
+}
+
+/**
+ * Class containing a function for the API endpoint classes to avoid code duplication
+ */
+class ResponseSender {
+	/**
+	 * Sends the given code and response message and then closes the HTTP exchange.
+	 * @param exchange
+	 * @param code
+	 * @param response
+	 * @throws IOException
+	 */
+	public void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+	}
+}
+
+/**
  * API endpoint for addActor.
  */
 class AddActorHttpHandler implements HttpHandler {
@@ -545,26 +582,6 @@ class AddRelationShipHttpHandler implements HttpHandler {
 */
 
 /**
- * Class containing a function for the API endpoint classes to avoid code duplication
- */
-class ResponseSender {
-	/**
-	 * Sends the given code and response message and then closes the HTTP exchange.
-	 * @param exchange
-	 * @param code
-	 * @param response
-	 * @throws IOException
-	 */
-	public void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-	}
-}
-
-
-/**
  * API endpoint for getActor.
  */
 class GetActorHttpHandler implements HttpHandler {
@@ -852,20 +869,4 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
 
 }
 
-/**
- * Data class for info about JSON validation. Contains a boolean indicating whether it is valid and a String for additional info about the validation.
- */
-class JSONValidationData {
-	
-	public final boolean valid;
-	public String message = "default message";
-	
-	public JSONValidationData(boolean valid) {
-		this.valid = valid;
-	}
-	
-	public JSONValidationData(boolean valid, String message) {
-		this.valid = valid;
-		if(message != null) this.message = message;
-	}
-}
+
