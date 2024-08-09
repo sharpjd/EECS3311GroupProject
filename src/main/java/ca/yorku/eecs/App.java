@@ -14,6 +14,8 @@ import ca.yorku.eecs.DB.DBUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.exceptions.ClientException;
+
 import java.nio.charset.StandardCharsets;
 
 import org.json.*;
@@ -37,7 +39,11 @@ public class App //starter code
         DBUtil.connect(uriDb, username, password);
         db = new DBNew();
         
-        db.createConstraints();
+        try {
+        	db.createConstraints();
+        } catch (ClientException e) {
+        	//do nothing if it already exists
+        }
         
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
     }
