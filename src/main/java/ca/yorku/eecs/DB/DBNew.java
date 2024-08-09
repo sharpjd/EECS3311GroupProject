@@ -72,8 +72,6 @@ public class DBNew {
 					Map.of("name", actorName, "actorId", actorId));
 			
 			StatementResult result = transaction.run(query);
-			
-			//seems to get hung here
 						
 			/*
 			 * for whatever reason, this causes the function to hang
@@ -87,6 +85,36 @@ public class DBNew {
 		}
 	}
 	
-	
+	public void addMovie(String movieId, String name, String release) {
+        try (Session session = DBUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
+            Statement query = new Statement("CREATE (m:movie {movieId: $movieId, name: $name, release: $release})", 
+                    Map.of("movieId", movieId, "name", name, "release", release));
+            StatementResult result = tx.run(query);
+
+            //result.list();
+
+            System.out.println("Statement result: " + result.consume());
+
+            tx.success();
+        }
+    }
+    
+    public void addActedInRelationship(String actorId, String movieId) {
+        try (Session session = DBUtil.getSession()) {
+                Transaction tx = session.beginTransaction();
+                
+                Statement query = new Statement("MATCH (a:actor {actorId: $actorId}), (m:movie {id: $movieId}) " +
+                               "MERGE (a)-[:ACTED_IN]->(m)", 
+                               Map.of("actorId", actorId, "movieId", movieId));
+                
+                StatementResult result = tx.run(query);
+                
+                System.out.println("Statement result: " + result.consume());
+                
+                tx.success();
+
+        }
+    }
 	
 }
