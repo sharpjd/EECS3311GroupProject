@@ -15,6 +15,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.exceptions.ClientException;
+import org.neo4j.driver.v1.exceptions.DatabaseException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -60,7 +61,9 @@ public class App //starter code
     
 }
 
-
+/**
+ * API endpoint for addActor.
+ */
 class AddActorHttpHandler implements HttpHandler {
 
 	private DBNew db;
@@ -121,6 +124,17 @@ class AddActorHttpHandler implements HttpHandler {
 		
 	}
 	
+	/**
+	 * Validates a JSON string for this API endpoint.
+	 * 
+	 * Criteria:
+	 * 1. The syntax is correct
+	 * 2. name is not null or empty
+	 * 3. actorId is not null or empty
+	 *  
+	 * @param json the JSON string to validate
+	 * @return a JSONValidationData object with property "valid" set to true if it's valid according to the aforementioned criteria, false otherwise
+	 */
 	public JSONValidationData validateJSON(String json) {
 		
 		StringBuilder message = new StringBuilder();
@@ -156,6 +170,9 @@ class AddActorHttpHandler implements HttpHandler {
 	
 }
 
+/**
+ * API endpoint for addMovie.
+ */
 class AddMovieHttpHandler implements HttpHandler {
 
 	private DBNew db;
@@ -218,6 +235,17 @@ class AddMovieHttpHandler implements HttpHandler {
 		
 	}
 	
+	/**
+	 * Validates a JSON string for this API endpoint.
+	 * 
+	 * Criteria:
+	 * 1. The syntax is correct
+	 * 2. name is not null or empty
+	 * 3. movieId is not null or empty
+	 *  
+	 * @param json the JSON string to validate
+	 * @return a JSONValidationData object with property "valid" set to true if it's valid according to the aforementioned criteria, false otherwise
+	 */
 	public JSONValidationData validateJSON(String json) {
 		
 		StringBuilder message = new StringBuilder();
@@ -252,10 +280,14 @@ class AddMovieHttpHandler implements HttpHandler {
 		
 	}
 }
-
+/**
+ * API endpoint for addRelationship.
+ */
 class AddRelationshipHttpHandler implements HttpHandler {
 
     private DBNew db;
+    
+    ResponseSender responseSender = new ResponseSender();
 
     public AddRelationshipHttpHandler(DBNew db) {
         this.db = db;
@@ -269,7 +301,7 @@ class AddRelationshipHttpHandler implements HttpHandler {
                 JSONObject jsonObject = new JSONObject(requestBody);
 
                 if (!jsonObject.has("actorId") || !jsonObject.has("movieId")) {
-                    sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
+                    responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
                     return;
                 }
 
@@ -281,33 +313,33 @@ class AddRelationshipHttpHandler implements HttpHandler {
                 String movie = db.getMovieById(movieId);
 
                 if (actor == null) {
-                    sendResponseAndClose(exchange, 404, "Actor not found");
+                    responseSender.sendResponseAndClose(exchange, 404, "Actor not found");
                     return;
                 }
 
                 if (movie == null) {
-                    sendResponseAndClose(exchange, 404, "Movie not found");
+                    responseSender.sendResponseAndClose(exchange, 404, "Movie not found");
                     return;
                 }
 
                 db.addActedInRelationship(actorId, movieId);
 
-                sendResponseAndClose(exchange, 200, "Relationship added successfully");
+                responseSender.sendResponseAndClose(exchange, 200, "Relationship added successfully");
 
             } else {
-                sendResponseAndClose(exchange, 405, "Only PUT is supported");
+                responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
             }
 
         } catch (JSONException e) {
             try {
-				sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
+				responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
         } catch (Exception e) {
             try {
-				sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+				responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -315,12 +347,6 @@ class AddRelationshipHttpHandler implements HttpHandler {
         }
     }
 
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
 }
 
 
@@ -353,25 +379,25 @@ class AddMovieHttpHandler implements HttpHandler {
 
                 // Respond with success message
                 String response = "PUT request successful. Data: " + requestBody;
-                sendResponseAndClose(exchange, 200, response);
+                responseSender.sendResponseAndClose(exchange, 200, response);
 
             } else {
-                sendResponseAndClose(exchange, 405, "Only PUT is supported");
+                responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
             }
 
         } catch (JSONException e) {
-            sendResponseAndClose(exchange, 400, "Invalid JSON format");
+            responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format");
         } 
 
 	catch (IOException e) {
-            sendResponseAndClose(exchange, 500, "Internal Server Error");
+            responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error");
         }
 
         System.out.println("Handle AddMovie finished");
 
     }
 
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+    private void responseSender.sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
         exchange.sendResponseHeaders(code, response.getBytes().length);
         OutputStream os = exchange.getResponseBody();
         os.write(response.getBytes());
@@ -518,7 +544,17 @@ class AddRelationShipHttpHandler implements HttpHandler {
 }
 */
 
+/**
+ * Class containing a function for the API endpoint classes to avoid code duplication
+ */
 class ResponseSender {
+	/**
+	 * Sends the given code and response message and then closes the HTTP exchange.
+	 * @param exchange
+	 * @param code
+	 * @param response
+	 * @throws IOException
+	 */
 	public void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
         exchange.sendResponseHeaders(code, response.getBytes().length);
         OutputStream os = exchange.getResponseBody();
@@ -528,9 +564,14 @@ class ResponseSender {
 }
 
 
+/**
+ * API endpoint for getActor.
+ */
 class GetActorHttpHandler implements HttpHandler {
 
     private DBNew db;
+    
+    ResponseSender responseSender = new ResponseSender();
 
     public GetActorHttpHandler(DBNew db) {
         this.db = db;
@@ -544,7 +585,7 @@ class GetActorHttpHandler implements HttpHandler {
             String actorId = params.get("actorId");
 
             if (actorId == null || actorId.isEmpty()) {
-                sendResponseAndClose(exchange, 400, "Missing required field: actorId");
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required field: actorId");
                 return;
             }
 
@@ -552,15 +593,15 @@ class GetActorHttpHandler implements HttpHandler {
                 String actorJson = db.getActorById(actorId);
 
                 if (actorJson != null) {
-                    sendResponseAndClose(exchange, 200, actorJson);
+                    responseSender.sendResponseAndClose(exchange, 200, actorJson);
                 } else {
-                    sendResponseAndClose(exchange, 404, "Actor not found");
+                    responseSender.sendResponseAndClose(exchange, 404, "Actor not found");
                 }
             } catch (Exception e) {
-                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
         } else {
-            sendResponseAndClose(exchange, 405, "Only GET is supported");
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
 
@@ -573,17 +614,17 @@ class GetActorHttpHandler implements HttpHandler {
         return result;
     }
 
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
+
 }
 
+/**
+ * API endpoint for getMovie.
+ */
 class GetMovieHttpHandler implements HttpHandler {
 
     private DBNew db;
+    
+    ResponseSender responseSender = new ResponseSender();
 
     public GetMovieHttpHandler(DBNew db) {
         this.db = db;
@@ -597,7 +638,7 @@ class GetMovieHttpHandler implements HttpHandler {
             String movieId = params.get("movieId");
 
             if (movieId == null || movieId.isEmpty()) {
-                sendResponseAndClose(exchange, 400, "Missing required field: movieId");
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required field: movieId");
                 return;
             }
 
@@ -605,15 +646,15 @@ class GetMovieHttpHandler implements HttpHandler {
                 String movieJson = db.getMovieById(movieId);
 
                 if (movieJson != null) {
-                    sendResponseAndClose(exchange, 200, movieJson);
+                    responseSender.sendResponseAndClose(exchange, 200, movieJson);
                 } else {
-                    sendResponseAndClose(exchange, 404, "Movie not found");
+                    responseSender.sendResponseAndClose(exchange, 404, "Movie not found");
                 }
             } catch (Exception e) {
-                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
         } else {
-            sendResponseAndClose(exchange, 405, "Only GET is supported");
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
 
@@ -626,17 +667,16 @@ class GetMovieHttpHandler implements HttpHandler {
         return result;
     }
 
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
 }
 
+/**
+ * API endpoint for hasRelationship.
+ */
 class HasRelationshipHttpHandler implements HttpHandler {
 
     private DBNew db;
+    
+    ResponseSender responseSender = new ResponseSender();
 
     public HasRelationshipHttpHandler(DBNew db) {
         this.db = db;
@@ -651,7 +691,7 @@ class HasRelationshipHttpHandler implements HttpHandler {
             String movieId = params.get("movieId");
 
             if (actorId == null || actorId.isEmpty() || movieId == null || movieId.isEmpty()) {
-                sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
                 return;
             }
 
@@ -660,12 +700,12 @@ class HasRelationshipHttpHandler implements HttpHandler {
                 String movie = db.getMovieById(movieId);
 
                 if (actor == null) {
-                    sendResponseAndClose(exchange, 404, "Actor not found");
+                    responseSender.sendResponseAndClose(exchange, 404, "Actor not found");
                     return;
                 }
 
                 if (movie == null) {
-                    sendResponseAndClose(exchange, 404, "Movie not found");
+                    responseSender.sendResponseAndClose(exchange, 404, "Movie not found");
                     return;
                 }
 
@@ -675,12 +715,12 @@ class HasRelationshipHttpHandler implements HttpHandler {
                 jsonResponse.put("movieId", movieId);
                 jsonResponse.put("hasRelationship", hasRelationship);
 
-                sendResponseAndClose(exchange, 200, jsonResponse.toString());
+                responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
             } catch (Exception e) {
-                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
         } else {
-            sendResponseAndClose(exchange, 405, "Only GET is supported");
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
 
@@ -693,17 +733,17 @@ class HasRelationshipHttpHandler implements HttpHandler {
         return result;
     }
 
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
+
 }
 
+/**
+ * API endpoint for ComputeBaconNumber
+ */
 class ComputeBaconNumberHttpHandler implements HttpHandler {
 
     private DBNew db;
+    
+    ResponseSender responseSender = new ResponseSender();
 
     public ComputeBaconNumberHttpHandler(DBNew db) {
         this.db = db;
@@ -717,7 +757,7 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
             String actorId = params.get("actorId");
 
             if (actorId == null || actorId.isEmpty()) {
-                sendResponseAndClose(exchange, 400, "Missing required field: actorId");
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required field: actorId");
                 return;
             }
 
@@ -725,7 +765,7 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
                 int baconNumber = db.computeBaconNumber(actorId);
 
                 if (baconNumber == -1) {
-                    sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
+                    responseSender.sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
                     return;
                 }
 
@@ -733,12 +773,12 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
                 jsonResponse.put("actorId", actorId);
                 jsonResponse.put("baconNumber", baconNumber);
 
-                sendResponseAndClose(exchange, 200, jsonResponse.toString());
+                responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
             } catch (Exception e) {
-                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
         } else {
-            sendResponseAndClose(exchange, 405, "Only GET is supported");
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
 
@@ -751,17 +791,17 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
         return result;
     }
 
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
+
 }
 
+/**
+ * API endpoint for computeBaconPath
+ */
 class ComputeBaconPathHttpHandler implements HttpHandler {
 
     private DBNew db;
+    
+    ResponseSender responseSender = new ResponseSender();
 
     public ComputeBaconPathHttpHandler(DBNew db) {
         this.db = db;
@@ -775,7 +815,7 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
             String actorId = params.get("actorId");
 
             if (actorId == null || actorId.isEmpty()) {
-                sendResponseAndClose(exchange, 400, "Missing required field: actorId");
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required field: actorId");
                 return;
             }
 
@@ -783,7 +823,7 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
                 List<String> baconPath = db.computeBaconPath(actorId);
 
                 if (baconPath == null || baconPath.isEmpty()) {
-                    sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
+                    responseSender.sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
                     return;
                 }
 
@@ -791,12 +831,12 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
                 jsonResponse.put("actorId", actorId);
                 jsonResponse.put("baconPath", baconPath);
 
-                sendResponseAndClose(exchange, 200, jsonResponse.toString());
+                responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
             } catch (Exception e) {
-                sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
         } else {
-            sendResponseAndClose(exchange, 405, "Only GET is supported");
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
 
@@ -809,14 +849,12 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
         return result;
     }
 
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
+
 }
 
+/**
+ * Data class for info about JSON validation. Contains a boolean indicating whether it is valid and a String for additional info about the validation.
+ */
 class JSONValidationData {
 	
 	public final boolean valid;
