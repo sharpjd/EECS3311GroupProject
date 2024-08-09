@@ -31,6 +31,39 @@ public class DBNew {
 			System.out.println("Finished inputting restraints");
 		}
 	}
+
+		public void addRandomAwardToActors() {
+	    List<String> awards = Arrays.asList("Best Actor", "Best Supporting Actor", "Lifetime Achievement");
+	    Random random = new Random();
+	    String query = "MATCH (a:Actor) RETURN a.actorId AS actorId";
+
+	    try (Session session = DBUtil.getSession()) {
+	        List<Record> actors = session.run(query).list();
+	        for (Record actor : actors) {
+	            String actorId = actor.get("actorId").asString();
+	            String randomAward = awards.get(random.nextInt(awards.size()));
+
+	            String updateQuery = "MATCH (a:Actor {actorId: $actorId}) " +
+	                                 "SET a.awards = coalesce(a.awards, []) + $randomAward";
+
+	            session.run(updateQuery, parameters("actorId", actorId, "randomAward", randomAward));
+	        }
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+	
+	public void addMovieRating(String movieId, String newRating) {
+		try(Session session = DBUtil.getSession()){
+			Transaction tx = session.beginTransaction();
+			Statement query = new Statement("MATCH (m:Movie {movieId: $movieId}) SET m.rating = $rating", 
+					Map.of("movieId", movieId, "rating", String.format("%.1f", newRating)));
+			StatementResult result = tx.run(query);
+			
+			System.out.println("Statement result: " + result.consume());
+			tx.success();
+		}
+	}
 	
 	/**
 	 * Sets the rating of a Movie with the specified title.
