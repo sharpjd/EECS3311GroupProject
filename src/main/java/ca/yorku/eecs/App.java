@@ -39,12 +39,6 @@ public class App //starter code
         
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
         
-<<<<<<< HEAD
-        //db.addMovie("23423", "among us", 2020);
-        db.addActedInRelationship("6969", "23423");
-        
-=======
->>>>>>> f0d7eaa3ba38e7160ebe57105724ab2ee8e8d9b5
     }
     
 }
