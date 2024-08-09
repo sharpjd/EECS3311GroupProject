@@ -4,13 +4,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.Record;
+import org.neo4j.driver.v1.exceptions.ClientException;
 
 import java.util.*;
 import java.util.Map;
 
 public class DBNew {
 	
-	public void createConstraints() {
+	public void createConstraints() throws ClientException {
 		try(Session session = DBUtil.getSession()){
 			
 			Transaction transaction = session.beginTransaction();
@@ -30,18 +31,32 @@ public class DBNew {
 		}
 	}
 	
+	/**
+	 * Sets the rating for every Movie node in the DB.
+	 * @param defaultRating
+	 */
 	public void addRatingToAllMovies(String defaultRating) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (m:Movie) SET m.rating = $rating", Map.of("rating", String.format("%.2f", defaultRating)));
 		}
 	}
 	
+	/**
+	 * Sets the rating of a Movie with the specified title.
+	 * @param movieTitle
+	 * @param newRating
+	 */
 	public void updateMovieRating(String movieTitle, String newRating) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (m:Movie {title: $title}) SET m.rating = $rating", Map.of("title", movieTitle, "rating", String.format("rating", String.format("%.1f", newRating))));
 		}
 	}
 	
+	/**
+	 * Get a list of the titles of all movies that are above a certain rating.
+	 * @param minRating
+	 * @return
+	 */
 	public List<String> getMoviesWithRating(String minRating) {
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
@@ -54,6 +69,11 @@ public class DBNew {
 		return movies;
 	}
 	
+	/**
+	 * Get a list of all the movie titles whose release dates match the specified year.
+	 * @param year
+	 * @return
+	 */
 	public List<String> getMoviesByReleaseYear(String year){
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
@@ -66,6 +86,12 @@ public class DBNew {
 		}
 		return movies;
 	}
+	
+	/**
+	 * Add a list of awards (String) to the actor specified by name.
+	 * @param actor the name of the actor
+	 * @param awards a list containing the names of awards
+	 */
 	public void addAwards(String actor, List<String> awards) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (a:Actor {name: $name}) SET a.awards = $awards",
@@ -73,6 +99,11 @@ public class DBNew {
 		}
 	}
 	
+	/**
+	 * Get a list of actors which have the specified award.
+	 * @param award The name of the award
+	 * @return
+	 */
 	public List<String> getActorsByAward(String award){
 		List<String> actors = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
@@ -85,6 +116,11 @@ public class DBNew {
 		return actors;
 	}
 	
+	/**
+	 * Add an Actor node to the database.
+	 * @param actorName
+	 * @param actorId
+	 */
 	public void addActor(String actorName, String actorId) {
 		try(Session session = DBUtil.getSession()){
 			
@@ -107,6 +143,11 @@ public class DBNew {
 		}
 	}
 	
+	/**
+	 * Whether the specified Actor node exists, by their ID
+	 * @param actorId
+	 * @return
+	 */
 	public boolean actorExists(String actorId) {
 		try(Session session = DBUtil.getSession()){
 			
@@ -133,6 +174,12 @@ public class DBNew {
 		}
 	}
 	
+	/**
+	 * Add a Movie node to the database.
+	 * @param movieId
+	 * @param name
+	 * @param release
+	 */
 	public void addMovie(String movieId, String name, String release) {
         try (Session session = DBUtil.getSession()) {
             Transaction tx = session.beginTransaction();
@@ -147,6 +194,7 @@ public class DBNew {
             tx.success();
         }
     }
+	
 	
 	public boolean movieExists(String movieId) {
 		try(Session session = DBUtil.getSession()){
@@ -174,6 +222,11 @@ public class DBNew {
 		}
 	}
     
+	/**
+	 * Created an :ACTED_IN relationship from the specified Actor (by ID) to the specified Movie (by ID)
+	 * @param actorId
+	 * @param movieId
+	 */
     public void addActedInRelationship(String actorId, String movieId) {
         try (Session session = DBUtil.getSession()) {
                 Transaction tx = session.beginTransaction();
@@ -195,30 +248,12 @@ public class DBNew {
         }
     }
 
-    //Neo4j doesn't support constraints for duplicate relationships so this is necessary
-    public boolean actedInRelationshipExists(String actorId, String movieId) {
-    	try (Session session = DBUtil.getSession()) {
-            Transaction tx = session.beginTransaction();
-            
-            Statement query = new Statement( //WARNING: spaces can make or break the syntax, add one after each line
-            		"MATCH (a:Actor), (m:Movie) "
-            		+ "WHERE a.actorId = $actorId AND m.movieId = $movieId AND (a)-[:ACTED_IN]->(m) "
-            		+ "RETURN *; ", 
-                   Map.of("actorId", actorId, "movieId", movieId)
-                   );
-            
-            StatementResult result = tx.run(query);
-            
-            System.out.println("Statement result: " + result.consume());
-            
-            tx.success();
-            
-            if(result.list().size() != 0) return true;
-			else return false;
-
-    	}
-    }
 	
+    /**
+     * Get a JSON string of the specified Actor by ID that contains their name and ID
+     * @param actorId
+     * @return
+     */
     public String getActorById(String actorId) {
 	    try (Session session = DBUtil.getSession()) {    
                 StatementResult result = session.run("MATCH (a:Actor {actorId: $actorId}) RETURN a.name AS name, a.actorId AS actorId", Map.of("actorId", actorId));
@@ -242,7 +277,13 @@ public class DBNew {
 		}
         }
     }
-
+    
+    
+    /**
+     * Get a JSON string of the specified Movie by ID that contains its name and ID
+     * @param actorId
+     * @return
+     */
     public String getMovieById(String movieId) {
 	    try (Session session = DBUtil.getSession()) {    
                 StatementResult result = session.run("MATCH (m:Movie {movieId: $movieId}) RETURN m.name AS name, m.movieId AS movieId", Map.of("movieId", movieId));
@@ -267,6 +308,12 @@ public class DBNew {
         }
     }
 
+    /**
+	 * Whether the specified Actor (by ID) has an :ACTED_IN relationship with the specified Movie (by ID)
+	 * @param actorId
+	 * @param movieId
+	 * @return
+	 */
     public boolean hasActedInRelationship(String actorId, String movieId) {
     try (Session session = DBUtil.getSession()) {
         StatementResult result = session.run(
@@ -282,6 +329,11 @@ public class DBNew {
     }
     }
 
+   /**
+    * Compute the bacon number of the specified Actor (by ID)
+    * @param actorId
+    * @return
+    */
    public int computeBaconNumber(String actorId) {
         try (Session session = DBUtil.getSession()) {
             StatementResult result = session.run(
@@ -298,6 +350,11 @@ public class DBNew {
         }
     }
 
+   /**
+    * Return an ordered list of names representing the bacon path of the specified Actor (by ID)
+    * @param actorId
+    * @return
+    */
    public List<String> computeBaconPath(String actorId) {
         try (Session session = DBUtil.getSession()) {
             StatementResult result = session.run(
