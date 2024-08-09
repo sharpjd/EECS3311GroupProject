@@ -32,6 +32,8 @@ public class App //starter code
 	private static String username = "neo4j";
 	private static String password = "12345678";
 	
+	private static HttpServer _server;
+	
 	
     static int PORT = 8080; //starter code /* !!!MAKE SURE TO TERMINATE THIS APP OTHERWISE THE PORT WILL REMAIN OCCUPIED!!! */
     public static void main(String[] args) throws IOException //starter code
@@ -39,6 +41,8 @@ public class App //starter code
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", PORT), 0); //starter code 
         server.start(); //starter code
         System.out.printf("Server started on port %d...\n", PORT); //starter code
+        
+        _server = server;
         
         DBUtil.connect(uriDb, username, password);
         db = new DBNew();
@@ -57,6 +61,10 @@ public class App //starter code
 		server.createContext("/api/v1/hasRelationship", new HasRelationshipHttpHandler(db));
 		server.createContext("/api/v1/computeBaconNumber", new ComputeBaconNumberHttpHandler(db));
 		server.createContext("/api/v1/computeBaconPath", new ComputeBaconPathHttpHandler(db));
+    }
+    
+    public static void closeServer() {
+    	_server.stop(500);
     }
     
 }
@@ -865,8 +873,8 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
         }
         return result;
     }
-
-
+    
+    
+    
 }
-
 
