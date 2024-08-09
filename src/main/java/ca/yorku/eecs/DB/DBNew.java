@@ -15,8 +15,8 @@ public class DBNew {
 			
 			Transaction transaction = session.beginTransaction();
 			
-			Statement query = new Statement("CREATE CONSTRAINT ON (m:movie) ASSERT m.movieId IS UNIQUE");
-			Statement query2 = new Statement("CREATE CONSTRAINT ON (a:actor) ASSERT a.actorId IS UNIQUE");
+			Statement query = new Statement("CREATE CONSTRAINT ON (m:Movie) ASSERT m.movieId IS UNIQUE");
+			Statement query2 = new Statement("CREATE CONSTRAINT ON (a:Actor) ASSERT a.actorId IS UNIQUE");
 			
 			StatementResult result = transaction.run(query);
 			StatementResult result2 = transaction.run(query2);
@@ -32,20 +32,20 @@ public class DBNew {
 	
 	public void addRatingToAllMovies(String defaultRating) {
 		try(Session session = DBUtil.getSession()){
-			session.run("MATCH (m:movie) SET m.rating = $rating", Map.of("rating", String.format("%.2f", defaultRating)));
+			session.run("MATCH (m:Movie) SET m.rating = $rating", Map.of("rating", String.format("%.2f", defaultRating)));
 		}
 	}
 	
 	public void updateMovieRating(String movieTitle, String newRating) {
 		try(Session session = DBUtil.getSession()){
-			session.run("MATCH (m:movie {title: $title}) SET m.rating = $rating", Map.of("title", movieTitle, "rating", String.format("rating", String.format("%.1f", newRating))));
+			session.run("MATCH (m:Movie {title: $title}) SET m.rating = $rating", Map.of("title", movieTitle, "rating", String.format("rating", String.format("%.1f", newRating))));
 		}
 	}
 	
 	public List<String> getMoviesWithRating(String minRating) {
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (m:movie) WHERE m.rating >= $rating RETURN m.title AS title", Map.of("rating", String.format("%.1f", minRating)));
+			StatementResult result = session.run("MATCH (m:Movie) WHERE m.rating >= $rating RETURN m.title AS title", Map.of("rating", String.format("%.1f", minRating)));
 			while(result.hasNext()) {
 				Record record = result.next();
 				movies.add(record.get("title").asString());
@@ -57,7 +57,7 @@ public class DBNew {
 	public List<String> getMoviesByReleaseYear(String year){
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (m:movie) WHERE m.release = $release RETURN m.title AS title", Map.of("release", year));
+			StatementResult result = session.run("MATCH (m:Movie) WHERE m.release = $release RETURN m.title AS title", Map.of("release", year));
 			while(result.hasNext()) {
 				Record record = result.next();
 				movies.add(record.get("title").asString());
@@ -68,7 +68,7 @@ public class DBNew {
 	}
 	public void addAwards(String actor, List<String> awards) {
 		try(Session session = DBUtil.getSession()){
-			session.run("MATCH (a:actor {name: $name}) SET a.awards = $awards",
+			session.run("MATCH (a:Actor {name: $name}) SET a.awards = $awards",
 	                Map.of("name", actor, "awards", awards));	
 		}
 	}
@@ -76,7 +76,7 @@ public class DBNew {
 	public List<String> getActorsByAward(String award){
 		List<String> actors = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (a:actor) WHERE $award IN a.awards RETURN a.name AS name", Map.of("award", award));
+			StatementResult result = session.run("MATCH (a:Actor) WHERE $award IN a.awards RETURN a.name AS name", Map.of("award", award));
 			while(result.hasNext()) {
 				Record record = result.next();
 				actors.add(record.get("name").asString());
@@ -90,7 +90,7 @@ public class DBNew {
 			
 			Transaction transaction = session.beginTransaction();
 			
-			Statement query = new Statement("CREATE(a:actor {name:$name, actorId:$actorId})",
+			Statement query = new Statement("CREATE(a:Actor {name:$name, actorId:$actorId})",
 					Map.of("name", actorName, "actorId", actorId));
 			
 			StatementResult result = transaction.run(query);
@@ -112,7 +112,7 @@ public class DBNew {
 			
 			Transaction transaction = session.beginTransaction();
 			
-			Statement query = new Statement("MATCH(a: actor) WHERE a.actorId = $actorId RETURN a;",
+			Statement query = new Statement("MATCH(a: Actor) WHERE a.actorId = $actorId RETURN a;",
 					Map.of("actorId", actorId));
 			
 			StatementResult result = transaction.run(query);
@@ -136,7 +136,7 @@ public class DBNew {
 	public void addMovie(String movieId, String name, String release) {
         try (Session session = DBUtil.getSession()) {
             Transaction tx = session.beginTransaction();
-            Statement query = new Statement("CREATE (m:movie {movieId: $movieId, name: $name, release: $release})", 
+            Statement query = new Statement("CREATE (m:Movie {movieId: $movieId, name: $name, release: $release})", 
                     Map.of("movieId", movieId, "name", name, "release", release));
             StatementResult result = tx.run(query);
 
@@ -153,7 +153,7 @@ public class DBNew {
 			
 			Transaction transaction = session.beginTransaction();
 			
-			Statement query = new Statement("MATCH(m: movie) WHERE m.movieId = movieId RETURN m;",
+			Statement query = new Statement("MATCH(m: Movie) WHERE m.movieId = movieId RETURN m;",
 					Map.of("movieId", movieId));
 			
 			StatementResult result = transaction.run(query);
@@ -179,7 +179,7 @@ public class DBNew {
                 Transaction tx = session.beginTransaction();
                 
                 Statement query = new Statement( //WARNING: spaces can make or break the syntax, add one after each line
-                		"MATCH (a:actor), (m:movie) "
+                		"MATCH (a:Actor), (m:Movie) "
                 		+ "WHERE a.actorId = $actorId AND m.movieId = $movieId "
                 		+ "CREATE (a)-[r:ACTED_IN]->(m) "
                 		+ "RETURN type(r); ", 
@@ -201,7 +201,7 @@ public class DBNew {
             Transaction tx = session.beginTransaction();
             
             Statement query = new Statement( //WARNING: spaces can make or break the syntax, add one after each line
-            		"MATCH (a:actor), (m:movie) "
+            		"MATCH (a:Actor), (m:Movie) "
             		+ "WHERE a.actorId = $actorId AND m.movieId = $movieId AND (a)-[:ACTED_IN]->(m) "
             		+ "RETURN *; ", 
                    Map.of("actorId", actorId, "movieId", movieId)
@@ -221,7 +221,7 @@ public class DBNew {
 	
     public String getActorById(String actorId) {
 	    try (Session session = DBUtil.getSession()) {    
-                StatementResult result = session.run("MATCH (a:actor {actorId: $actorId}) RETURN a.name AS name, a.actorId AS actorId", Map.of("actorId", actorId));
+                StatementResult result = session.run("MATCH (a:Actor {actorId: $actorId}) RETURN a.name AS name, a.actorId AS actorId", Map.of("actorId", actorId));
 
 		if (result.hasNext()) {
 			Record record = result.next();
@@ -245,7 +245,7 @@ public class DBNew {
 
     public String getMovieById(String movieId) {
 	    try (Session session = DBUtil.getSession()) {    
-                StatementResult result = session.run("MATCH (m:movie {movieId: $movieId}) RETURN m.name AS name, m.movieId AS movieId", Map.of("movieId", movieId));
+                StatementResult result = session.run("MATCH (m:Movie {movieId: $movieId}) RETURN m.name AS name, m.movieId AS movieId", Map.of("movieId", movieId));
 
 		if (result.hasNext()) {
 			Record record = result.next();
@@ -270,7 +270,7 @@ public class DBNew {
     public boolean hasActedInRelationship(String actorId, String movieId) {
     try (Session session = DBUtil.getSession()) {
         StatementResult result = session.run(
-            "MATCH (a:actor {actorId: $actorId})-[:ACTED_IN]->(m:movie {movieId: $movieId}) " +
+            "MATCH (a:Actor {actorId: $actorId})-[:ACTED_IN]->(m:Movie {movieId: $movieId}) " +
             "RETURN count(*) > 0 AS hasRelationship",
             Map.of("actorId", actorId, "movieId", movieId)
         );
@@ -285,7 +285,7 @@ public class DBNew {
    public int computeBaconNumber(String actorId) {
         try (Session session = DBUtil.getSession()) {
             StatementResult result = session.run(
-                    "MATCH (bacon:actor {actorId: 'nm0000102'}), (actor:actor {actorId: $actorId}), " +
+                    "MATCH (bacon:Actor {actorId: 'nm0000102'}), (actor:Actor {actorId: $actorId}), " +
                     "p = shortestPath((bacon)-[:ACTED_IN*]-(actor)) " +
                     "RETURN length(p)/2 AS baconNumber",
                     Map.of("actorId", actorId)
@@ -301,7 +301,7 @@ public class DBNew {
    public List<String> computeBaconPath(String actorId) {
         try (Session session = DBUtil.getSession()) {
             StatementResult result = session.run(
-                    "MATCH (bacon:actor {actorId: 'nm0000102'}), (actor:actor {actorId: $actorId}), " +
+                    "MATCH (bacon:Actor {actorId: 'nm0000102'}), (actor:Actor {actorId: $actorId}), " +
                     "p = shortestPath((bacon)-[:ACTED_IN*]-(actor)) " +
                     "RETURN [n IN nodes(p) | coalesce(n.name, n.title)] AS path",
                     Map.of("actorId", actorId)
