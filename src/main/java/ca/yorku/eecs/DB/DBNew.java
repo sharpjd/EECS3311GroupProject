@@ -8,19 +8,19 @@ import java.util.Map;
 
 public class DBNew {
 	
-	public void addRatingToAllMovies(double defaultRating) {
+	public void addRatingToAllMovies(String defaultRating) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (m:movie) SET m.rating = $rating", Map.of("rating", String.format("%.2f", defaultRating)));
 		}
 	}
 	
-	public void updateMovieRating(String movieTitle, double newRating) {
+	public void updateMovieRating(String movieTitle, String newRating) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (m:movie {title: $title}) SET m.rating = $rating", Map.of("title", movieTitle, "rating", String.format("rating", String.format("%.1f", newRating))));
 		}
 	}
 	
-	public List<String> getMoviesWithRating(double minRating) {
+	public List<String> getMoviesWithRating(String minRating) {
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
 			StatementResult result = session.run("MATCH (m:movie) WHERE m.rating >= $rating RETURN m.title AS title", Map.of("rating", String.format("%.1f", minRating)));
@@ -32,7 +32,7 @@ public class DBNew {
 		return movies;
 	}
 	
-	public List<String> getMoviesByReleaseYear(int year){
+	public List<String> getMoviesByReleaseYear(String year){
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
 			StatementResult result = session.run("MATCH (m:movie) WHERE m.release = $release RETURN m.title AS title", Map.of("release", year));
