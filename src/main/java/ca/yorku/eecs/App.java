@@ -37,6 +37,8 @@ public class App //starter code
         DBUtil.connect(uriDb, username, password);
         db = new DBNew();
         
+        db.createConstraints();
+        
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
     }
     

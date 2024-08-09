@@ -8,6 +8,26 @@ import java.util.Map;
 
 public class DBNew {
 	
+	public void createConstraints() {
+		try(Session session = DBUtil.getSession()){
+			
+			Transaction transaction = session.beginTransaction();
+			
+			Statement query = new Statement("CREATE CONSTRAINT ON (m:movie) ASSERT m.movieId IS UNIQUE");
+			Statement query2 = new Statement("CREATE CONSTRAINT ON (a:actor) ASSERT a.actorId IS UNIQUE");
+			
+			StatementResult result = transaction.run(query);
+			StatementResult result2 = transaction.run(query2);
+						
+			System.out.println("Statement result: " + result.consume());
+			System.out.println("Statement result: " + result2.consume());
+			
+			transaction.success();
+			
+			System.out.println("Finished inputting restraints");
+		}
+	}
+	
 	public void addRatingToAllMovies(String defaultRating) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (m:movie) SET m.rating = $rating", Map.of("rating", String.format("%.2f", defaultRating)));
