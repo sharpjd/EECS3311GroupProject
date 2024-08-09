@@ -104,9 +104,13 @@ public class DBNew {
         try (Session session = DBUtil.getSession()) {
                 Transaction tx = session.beginTransaction();
                 
-                Statement query = new Statement("MATCH (a:actor {actorId: $actorId}), (m:movie {id: $movieId}) " +
-                               "MERGE (a)-[:ACTED_IN]->(m)", 
-                               Map.of("actorId", actorId, "movieId", movieId));
+                Statement query = new Statement( //WARNING: spaces can make or break the syntax, add one after each line
+                		"MATCH (a:actor), (m:movie) "
+                		+ "WHERE a.actorId = $actorId AND m.movieId = $movieId "
+                		+ "CREATE (a)-[r:ACTED_IN]->(m) "
+                		+ "RETURN type(r); ", 
+                       Map.of("actorId", actorId, "movieId", movieId)
+                       );
                 
                 StatementResult result = tx.run(query);
                 
