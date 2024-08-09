@@ -1,5 +1,7 @@
 package ca.yorku.eecs.DB;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.Record;
 
@@ -217,15 +219,20 @@ public class DBNew {
     	}
     }
 	
-    public String getActorById(String actorID) {
+    public String getActorById(String actorId) {
 	    try (Session session = DBUtil.getSession()) {    
                 StatementResult result = session.run("MATCH (a:actor {actorId: $actorId}) RETURN a.name AS name, a.actorId AS actorId", Map.of("actorId", actorId));
 
 		if (result.hasNext()) {
 			Record record = result.next();
                 	JSONObject jsonObject = new JSONObject();
-                	jsonObject.put("name", record.get("name").asString());
-                	jsonObject.put("actorId", record.get("actorId").asString());
+                	try {
+						jsonObject.put("name", record.get("name").asString());
+						jsonObject.put("actorId", record.get("actorId").asString());
+					} catch (JSONException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
                 	return jsonObject.toString();
 		}
 
@@ -236,15 +243,20 @@ public class DBNew {
         }
     }
 
-    public String getMovieById(String movieID) {
+    public String getMovieById(String movieId) {
 	    try (Session session = DBUtil.getSession()) {    
                 StatementResult result = session.run("MATCH (m:movie {movieId: $movieId}) RETURN m.name AS name, m.movieId AS movieId", Map.of("movieId", movieId));
 
 		if (result.hasNext()) {
 			Record record = result.next();
                 	JSONObject jsonObject = new JSONObject();
-                	jsonObject.put("name", record.get("name").asString());
-                	jsonObject.put("movieId", record.get("movieId").asString());
+                	try {
+						jsonObject.put("name", record.get("name").asString());
+						jsonObject.put("movieId", record.get("movieId").asString());
+					} catch (JSONException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
                 	return jsonObject.toString();
 		}
 

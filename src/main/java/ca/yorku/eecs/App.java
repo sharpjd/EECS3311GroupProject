@@ -17,6 +17,9 @@ import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.exceptions.ClientException;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.json.*;
 
@@ -47,7 +50,7 @@ public class App //starter code
         
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
         server.createContext("/api/v1/addMovie", new AddMovieHttpHandler(db));
-        server.createContext("/api/v1/addRelationship", new AddRelationShipHttpHandler(db));
+        server.createContext("/api/v1/addRelationship", new AddRelationshipHttpHandler(db));
 		server.createContext("/api/v1/getActor", new GetActorHttpHandler(db));
 		server.createContext("/api/v1/getMovie", new GetMovieHttpHandler(db));
 		server.createContext("/api/v1/hasRelationship", new HasRelationshipHttpHandler(db));
@@ -250,6 +253,134 @@ class AddMovieHttpHandler implements HttpHandler {
 	}
 }
 
+class AddRelationshipHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public AddRelationshipHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) {
+        try {
+            if ("PUT".equals(exchange.getRequestMethod())) {
+                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                JSONObject jsonObject = new JSONObject(requestBody);
+
+                if (!jsonObject.has("actorId") || !jsonObject.has("movieId")) {
+                    sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
+                    return;
+                }
+
+                String actorId = jsonObject.getString("actorId");
+                String movieId = jsonObject.getString("movieId");
+
+                // make sure that the actor and movie exist
+                String actor = db.getActorById(actorId);
+                String movie = db.getMovieById(movieId);
+
+                if (actor == null) {
+                    sendResponseAndClose(exchange, 404, "Actor not found");
+                    return;
+                }
+
+                if (movie == null) {
+                    sendResponseAndClose(exchange, 404, "Movie not found");
+                    return;
+                }
+
+                db.addActedInRelationship(actorId, movieId);
+
+                sendResponseAndClose(exchange, 200, "Relationship added successfully");
+
+            } else {
+                sendResponseAndClose(exchange, 405, "Only PUT is supported");
+            }
+
+        } catch (JSONException e) {
+            try {
+				sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+        } catch (Exception e) {
+            try {
+				sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+        }
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+
+
+
+/* //code with duplicate functionality from vader
+class AddMovieHttpHandler implements HttpHandler {
+
+    private DBNew db;
+
+    public AddMovieHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) {
+        try {
+            System.out.println("Got an AddMovie request!");
+
+            if ("PUT".equals(exchange.getRequestMethod())) {
+
+                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                System.out.println("Request body:" + requestBody);
+
+                JSONObject jsonObject = new JSONObject(requestBody);
+                String movieId = jsonObject.getString("movieId");
+                String name = jsonObject.getString("name");
+                String release = jsonObject.getString("release");
+
+                db.addMovie(movieId, name, release);
+
+                // Respond with success message
+                String response = "PUT request successful. Data: " + requestBody;
+                sendResponseAndClose(exchange, 200, response);
+
+            } else {
+                sendResponseAndClose(exchange, 405, "Only PUT is supported");
+            }
+
+        } catch (JSONException e) {
+            sendResponseAndClose(exchange, 400, "Invalid JSON format");
+        } 
+
+	catch (IOException e) {
+            sendResponseAndClose(exchange, 500, "Internal Server Error");
+        }
+
+        System.out.println("Handle AddMovie finished");
+
+    }
+
+    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
+        exchange.sendResponseHeaders(code, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+}
+*/
+
+/* //nonworking code from sharpjd
 class AddRelationShipHttpHandler implements HttpHandler {
 
 	private DBNew db;
@@ -385,7 +516,7 @@ class AddRelationShipHttpHandler implements HttpHandler {
 		
 	}
 }
-
+*/
 
 class ResponseSender {
 	public void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
@@ -396,118 +527,6 @@ class ResponseSender {
 	}
 }
 
-class AddMovieHttpHandler implements HttpHandler {
-
-    private DBNew db;
-
-    public AddMovieHttpHandler(DBNew db) {
-        this.db = db;
-    }
-
-    @Override
-    public void handle(HttpExchange exchange) {
-        try {
-            System.out.println("Got an AddMovie request!");
-
-            if ("PUT".equals(exchange.getRequestMethod())) {
-
-                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                System.out.println("Request body:" + requestBody);
-
-                JSONObject jsonObject = new JSONObject(requestBody);
-                String movieId = jsonObject.getString("movieId");
-                String name = jsonObject.getString("name");
-                String release = jsonObject.getString("release");
-
-                db.addMovie(movieId, name, release);
-
-                // Respond with success message
-                String response = "PUT request successful. Data: " + requestBody;
-                sendResponseAndClose(exchange, 200, response);
-
-            } else {
-                sendResponseAndClose(exchange, 405, "Only PUT is supported");
-            }
-
-        } catch (JSONException e) {
-            sendResponseAndClose(exchange, 400, "Invalid JSON format");
-        } 
-	
-	catch (IOException e) {
-            sendResponseAndClose(exchange, 500, "Internal Server Error");
-        }
-
-        System.out.println("Handle AddMovie finished");
-
-    }
-
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
-}
-
-class AddRelationshipHttpHandler implements HttpHandler {
-
-    private DBNew db;
-
-    public AddRelationshipHttpHandler(DBNew db) {
-        this.db = db;
-    }
-
-    @Override
-    public void handle(HttpExchange exchange) {
-        try {
-            if ("PUT".equals(exchange.getRequestMethod())) {
-                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                JSONObject jsonObject = new JSONObject(requestBody);
-
-                if (!jsonObject.has("actorId") || !jsonObject.has("movieId")) {
-                    sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
-                    return;
-                }
-
-                String actorId = jsonObject.getString("actorId");
-                String movieId = jsonObject.getString("movieId");
-
-                // make sure that the actor and movie exist
-                String actor = db.getActorById(actorId);
-                String movie = db.getMovieById(movieId);
-
-                if (actor == null) {
-                    sendResponseAndClose(exchange, 404, "Actor not found");
-                    return;
-                }
-
-                if (movie == null) {
-                    sendResponseAndClose(exchange, 404, "Movie not found");
-                    return;
-                }
-
-                db.addActedInRelationship(actorId, movieId);
-
-                sendResponseAndClose(exchange, 200, "Relationship added successfully");
-
-            } else {
-                sendResponseAndClose(exchange, 405, "Only PUT is supported");
-            }
-
-        } catch (JSONException e) {
-            sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
-        } catch (Exception e) {
-            sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
-        }
-    }
-
-    private void sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
-}
 
 class GetActorHttpHandler implements HttpHandler {
 
