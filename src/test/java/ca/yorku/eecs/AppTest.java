@@ -35,6 +35,7 @@ public class AppTest
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	
         return new TestSuite( AppTest.class );
     }
 
@@ -61,7 +62,7 @@ public class AppTest
         App.closeServer();
     }
     
-    public void testAddActorPass() throws Exception {
+    public void testaddActorPass() throws Exception {
         String jsonInputString = "{ "
         		+ "actorId: \"1234567\", "
         		+ "name: \"John Smith\" "
@@ -76,7 +77,7 @@ public class AppTest
         assertTrue(response.contains("PUT request successful"));
     }
     
-    public void testAddActorFail() throws Exception {
+    public void testaddActorFail() throws Exception {
     	
     	//case 1
         String jsonInputString = "{ " 
@@ -120,7 +121,21 @@ public class AppTest
     }
     
     
-
+    /* 
+     * 
+     * 
+     * !!!!
+     * Some of these tests might need to be run later in the order because 
+     * they depend on using functions like addActor, addMovie. etc.
+     * !!!! 
+     * 
+     * 
+     */
+    
+    
+    
+    
+    
 
 
     private HttpURLConnection sendPutRequest(String endpoint, String jsonInputString) throws Exception {
