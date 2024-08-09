@@ -8,19 +8,19 @@ import java.util.Map;
 
 public class DBNew {
 	
-	public void addRatingToAllMovies(double defaultRating) {
+	public void addRatingToAllMovies(String defaultRating) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (m:movie) SET m.rating = $rating", Map.of("rating", String.format("%.2f", defaultRating)));
 		}
 	}
 	
-	public void updateMovieRating(String movieTitle, double newRating) {
+	public void updateMovieRating(String movieTitle, String newRating) {
 		try(Session session = DBUtil.getSession()){
 			session.run("MATCH (m:movie {title: $title}) SET m.rating = $rating", Map.of("title", movieTitle, "rating", String.format("rating", String.format("%.1f", newRating))));
 		}
 	}
 	
-	public List<String> getMoviesWithRating(double minRating) {
+	public List<String> getMoviesWithRating(String minRating) {
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
 			StatementResult result = session.run("MATCH (m:movie) WHERE m.rating >= $rating RETURN m.title AS title", Map.of("rating", String.format("%.1f", minRating)));
@@ -32,7 +32,7 @@ public class DBNew {
 		return movies;
 	}
 	
-	public List<String> getMoviesByReleaseYear(int year){
+	public List<String> getMoviesByReleaseYear(String year){
 		List<String> movies = new ArrayList<>();
 		try(Session session = DBUtil.getSession()){
 			StatementResult result = session.run("MATCH (m:movie) WHERE m.release = $release RETURN m.title AS title", Map.of("release", year));
@@ -72,8 +72,6 @@ public class DBNew {
 					Map.of("name", actorName, "actorId", actorId));
 			
 			StatementResult result = transaction.run(query);
-			
-			//seems to get hung here
 						
 			/*
 			 * for whatever reason, this causes the function to hang
@@ -87,6 +85,36 @@ public class DBNew {
 		}
 	}
 	
-	
+	public void addMovie(String movieId, String name, String release) {
+        try (Session session = DBUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
+            Statement query = new Statement("CREATE (m:movie {movieId: $movieId, name: $name, release: $release})", 
+                    Map.of("movieId", movieId, "name", name, "release", release));
+            StatementResult result = tx.run(query);
+
+            //result.list();
+
+            System.out.println("Statement result: " + result.consume());
+
+            tx.success();
+        }
+    }
+    
+    public void addActedInRelationship(String actorId, String movieId) {
+        try (Session session = DBUtil.getSession()) {
+                Transaction tx = session.beginTransaction();
+                
+                Statement query = new Statement("MATCH (a:actor {actorId: $actorId}), (m:movie {id: $movieId}) " +
+                               "MERGE (a)-[:ACTED_IN]->(m)", 
+                               Map.of("actorId", actorId, "movieId", movieId));
+                
+                StatementResult result = tx.run(query);
+                
+                System.out.println("Statement result: " + result.consume());
+                
+                tx.success();
+
+        }
+    }
 	
 }

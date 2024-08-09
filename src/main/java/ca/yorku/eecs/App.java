@@ -38,6 +38,7 @@ public class App //starter code
         db = new DBNew();
         
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
+        
     }
     
 }
