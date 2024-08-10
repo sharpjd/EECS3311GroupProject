@@ -839,7 +839,7 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
     	
     	System.out.println("Got a ComputeBaconNumber request");
     	
-        if ("GET".equals(exchange.getRequestMethod())) {
+        //if ("GET".equals(exchange.getRequestMethod())) { //seems to prevent us from having a body
         	
         	String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         	
@@ -871,10 +871,10 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
             }
             
             
-        } else {
-        	System.out.println("wrong requst");
-            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
-        }
+        //} else {
+        	//System.out.println("wrong requst");
+            //responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+        //}
     }
     
     /**

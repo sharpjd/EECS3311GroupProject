@@ -4,6 +4,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import org.json.JSONObject;
+
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -153,7 +155,7 @@ public class AppTest
         		+ "name: \"Judy Judith\" "
         		+ "} ";        
         String addKevinBacon = "{ "
-        		+ "actorId: \"kb123456\", "
+        		+ "actorId: \"nm0000102\", " //do NOT change this
         		+ "name: \"Kevin Bacon\" "
         		+ "} ";        
         HttpURLConnection connection = sendPutRequest("/api/v1/addActor", addPerson1);
@@ -246,10 +248,13 @@ public class AppTest
         Thread.sleep(500);
         
         int responseCode = connection14.getResponseCode();
+        
         assertEquals(200, responseCode);
         
-        //int result = app.getDb().computeBaconNumber("cc123");
-        //assertEquals(6, result);
+        JSONObject data = new JSONObject(getResponse(connection14));
+        
+        
+        assertEquals(3, data.getInt("baconNumber"));
         
         
         /*
@@ -283,11 +288,17 @@ public class AppTest
         return connection;
     }
     
-    private HttpURLConnection sendGetRequest(String endpoint, String query) throws Exception {
-    	 URL url = new URL("http://localhost:" + app.PORT + endpoint + "?" + query);
+    private HttpURLConnection sendGetRequest(String endpoint, String jsonInputString) throws Exception {
+        URL url = new URL("http://localhost:" + app.PORT + endpoint);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Content-Type", "application/json; utf-8");
+        connection.setDoOutput(true);
+
+        try (OutputStream os = connection.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
 
         return connection;
     }
