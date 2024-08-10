@@ -355,48 +355,57 @@ class AddRelationshipHttpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) {
-        try {
-            if ("PUT".equals(exchange.getRequestMethod())) {
-                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                JSONObject jsonObject = new JSONObject(requestBody);
-
-                if (!jsonObject.has("actorId") || !jsonObject.has("movieId")) {
-                    responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
-                    return;
-                }
-
-                String actorId = jsonObject.getString("actorId");
-                String movieId = jsonObject.getString("movieId");
-
-                // make sure that the actor and movie exist
-                String actor = db.getActorById(actorId);
-                String movie = db.getMovieById(movieId);
-
-                if (actor == null) {
-                    responseSender.sendResponseAndClose(exchange, 404, "Actor not found");
-                    return;
-                }
-
-                if (movie == null) {
-                    responseSender.sendResponseAndClose(exchange, 404, "Movie not found");
-                    return;
-                }
-
-                db.addActedInRelationship(actorId, movieId);
-
-                responseSender.sendResponseAndClose(exchange, 200, "Relationship added successfully");
-
-            } else {
-                responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
-            }
-
-        } catch (JSONException e) {
-            try {
-				responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
-			} catch (IOException e1) {
+        //try {
+        	try {
+	            if ("PUT".equals(exchange.getRequestMethod())) {
+	                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+	                JSONObject jsonObject = new JSONObject(requestBody);
+	
+	                if (!jsonObject.has("actorId") || !jsonObject.has("movieId")) {
+	                    responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
+	                    return;
+	                }
+	
+	                String actorId = jsonObject.getString("actorId");
+	                String movieId = jsonObject.getString("movieId");
+	
+	                // make sure that the actor and movie exist
+	                String actor = db.getActorById(actorId);
+	                String movie = db.getMovieById(movieId);
+	
+	                if (actor == null) {
+	                    responseSender.sendResponseAndClose(exchange, 404, "Actor not found");
+	                    return;
+	                }
+	
+	                if (movie == null) {
+	                    responseSender.sendResponseAndClose(exchange, 404, "Movie not found");
+	                    return;
+	                }
+	                
+	                if(db.hasActedInRelationship(actorId, movieId)) {
+	                	responseSender.sendResponseAndClose(exchange, 400, "PUT failed: relationship already exists");
+	                } else {
+	                	db.addActedInRelationship(actorId, movieId);
+	                	responseSender.sendResponseAndClose(exchange, 200, "Relationship added successfully");
+	                }
+	
+	            } else {
+	                responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
+	            }
+	
+	        } catch (JSONException e) {
+	            try {
+					responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+	        } catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
+        	/*
         } catch (Exception e) {
             try {
 				responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
@@ -405,6 +414,7 @@ class AddRelationshipHttpHandler implements HttpHandler {
 				e1.printStackTrace();
 			}
         }
+        */
     }
 
 }
@@ -763,7 +773,7 @@ class HasRelationshipHttpHandler implements HttpHandler {
             responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
-
+    
     private Map<String, String> queryToMap(String query) {
         Map<String, String> result = new HashMap<>();
         for (String param : query.split("&")) {
@@ -772,7 +782,42 @@ class HasRelationshipHttpHandler implements HttpHandler {
         }
         return result;
     }
-
+    
+    /**
+	 * Validates a JSON string for this API endpoint.
+	 * 
+	 * Criteria:
+	 * 1. The syntax is correct
+	 * 3. actorId is not null or empty
+	 *  
+	 * @param json the JSON string to validate
+	 * @return a JSONValidationData object with property "valid" set to true if it's valid according to the aforementioned criteria, false otherwise
+	 */
+	public JSONValidationData validateJSON(String json) {
+		
+		StringBuilder message = new StringBuilder();
+		boolean valid = true;
+		
+		JSONObject jsonObject;
+        String actorId = null;
+        
+        try {
+			jsonObject = new JSONObject(json);
+			actorId = jsonObject.optString("actorId");
+	        
+	        if(actorId == null || actorId.isEmpty()) {
+	        	valid = false;
+	        	message.append("Validation failed: actorId is empty or not found\n");
+	        }
+			
+		} catch (JSONException e) {
+			message.append("Validation failed: JSON syntax error: " + e.getMessage());
+			return new JSONValidationData(false, message.toString());
+		}
+        
+        return new JSONValidationData(valid, message.toString());
+		
+	}
 
 }
 
@@ -791,46 +836,82 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+    	
+    	System.out.println("Got a ComputeBaconNumber request");
+    	
         if ("GET".equals(exchange.getRequestMethod())) {
-            String query = exchange.getRequestURI().getQuery();
-            Map<String, String> params = queryToMap(query);
-            String actorId = params.get("actorId");
+        	
+        	String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        	
+            JSONValidationData validation = validateJSON(requestBody);
 
-            if (actorId == null || actorId.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required field: actorId");
-                return;
-            }
+            if(validation.valid) {
+            	try {
+            		
+            		JSONObject data = new JSONObject(requestBody);
+            		String actorId = data.getString("actorId");
+            		
+                    int baconNumber = db.computeBaconNumber(actorId);
 
-            try {
-                int baconNumber = db.computeBaconNumber(actorId);
+                    if (baconNumber == -1) {
+                        responseSender.sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
+                        return;
+                    }
 
-                if (baconNumber == -1) {
-                    responseSender.sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
-                    return;
+                    JSONObject jsonResponse = new JSONObject();
+                    jsonResponse.put("actorId", actorId);
+                    jsonResponse.put("baconNumber", baconNumber);
+
+                    responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
+                } catch (Exception e) {
+                    responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
                 }
-
-                JSONObject jsonResponse = new JSONObject();
-                jsonResponse.put("actorId", actorId);
-                jsonResponse.put("baconNumber", baconNumber);
-
-                responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
-            } catch (Exception e) {
-                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            } else {
+            	responseSender.sendResponseAndClose(exchange, 400, "GET request failed with message: " + validation.message);
             }
+            
+            
         } else {
+        	System.out.println("wrong requst");
             responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
-
-    private Map<String, String> queryToMap(String query) {
-        Map<String, String> result = new HashMap<>();
-        for (String param : query.split("&")) {
-            String[] entry = param.split("=");
-            result.put(entry[0], entry[1]);
-        }
-        return result;
-    }
-
+    
+    /**
+	 * Validates a JSON string for this API endpoint.
+	 * 
+	 * Criteria:
+	 * 1. The syntax is correct
+	 * 3. actorId is not null or empty
+	 *  
+	 * @param json the JSON string to validate
+	 * @return a JSONValidationData object with property "valid" set to true if it's valid according to the aforementioned criteria, false otherwise
+	 */
+	public JSONValidationData validateJSON(String json) {
+		
+		StringBuilder message = new StringBuilder();
+		boolean valid = true;
+		
+		JSONObject jsonObject;
+        String actorId = null;
+        
+        try {
+			jsonObject = new JSONObject(json);
+			actorId = jsonObject.optString("actorId");
+	        
+	        if(actorId == null || actorId.isEmpty()) {
+	        	valid = false;
+	        	message.append("Validation failed: actorId is empty or not found\n");
+	        }
+			
+		} catch (JSONException e) {
+			message.append("Validation failed: JSON syntax error: " + e.getMessage());
+			return new JSONValidationData(false, message.toString());
+		}
+        
+        return new JSONValidationData(valid, message.toString());
+		
+	}
 
 }
 
