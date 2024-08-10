@@ -187,6 +187,9 @@ public class DBNew {
 					Map.of("name", actorName, "actorId", actorId));
 			
 			StatementResult result = transaction.run(query);
+			
+			//result.list();
+			//result.single();
 						
 			/*
 			 * for whatever reason, this causes the function to hang
@@ -223,36 +226,6 @@ public class DBNew {
 		}
 	}
 	
-	/**
-	 * Whether the specified Actor node exists, by their ID
-	 * @param actorId
-	 * @return
-	 */
-	public boolean actorExists(String actorId) {
-		try(Session session = DBUtil.getSession()){
-			
-			Transaction transaction = session.beginTransaction();
-			
-			Statement query = new Statement("MATCH(a: Actor) WHERE a.actorId = $actorId RETURN a;",
-					Map.of("actorId", actorId));
-			
-			StatementResult result = transaction.run(query);
-						
-			/*
-			 * for whatever reason, this causes the function to hang
-			 * System.out.println("Statement result: " + result.single().get(0).asString());
-			 * 
-			 * and the below statement is also require in order for the function to not hang
-			 */
-			
-			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
-			
-			transaction.success();
-			
-			if(result.list().size() != 0) return true;
-			else return false;
-		}
-	}
 	
 	/**
 	 * Add a Movie node to the database.
@@ -274,33 +247,6 @@ public class DBNew {
             tx.success();
         }
     }
-	
-	
-	public boolean movieExists(String movieId) {
-		try(Session session = DBUtil.getSession()){
-			
-			Transaction transaction = session.beginTransaction();
-			
-			Statement query = new Statement("MATCH(m: Movie) WHERE m.movieId = movieId RETURN m;",
-					Map.of("movieId", movieId));
-			
-			StatementResult result = transaction.run(query);
-						
-			/*
-			 * for whatever reason, this causes the function to hang
-			 * System.out.println("Statement result: " + result.single().get(0).asString());
-			 * 
-			 * and the below statement is also require in order for the function to not hang
-			 */
-			
-			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
-			
-			transaction.success();
-			
-			if(result.list().size() != 0) return true;
-			else return false;
-		}
-	}
     
 	/**
 	 * Created an :ACTED_IN relationship from the specified Actor (by ID) to the specified Movie (by ID)

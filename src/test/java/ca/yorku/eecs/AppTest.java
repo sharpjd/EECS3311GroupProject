@@ -157,10 +157,6 @@ public class AppTest
         HttpURLConnection connection2 = sendPutRequest("/api/v1/addActor", addPerson2);
         HttpURLConnection connection3 = sendPutRequest("/api/v1/addActor", addPerson3);
         HttpURLConnection connection4 = sendPutRequest("/api/v1/addActor", addKevinBacon);
-
-        
-        System.out.println("adding stuff: " + connection.getResponseCode());
-        
         
         String addMovie1 = "{ "
         		+ "movieId: \"am123\", "
@@ -215,7 +211,8 @@ public class AppTest
 			This path has 6 connections between cc and kb, so the Bacon Number for cc is 6.
          */
         
-        HttpURLConnection connection14 = sendPutRequest("/api/v1/computerBaconNumber", "{ actorId: \"cc123\" }");
+        HttpURLConnection connection14 = sendPutRequest("/api/v1/computeBaconNumber", "{ actorId: \"cc123\" }");
+        
         int responseCode = connection14.getResponseCode();
         assertEquals(responseCode, 200);
         

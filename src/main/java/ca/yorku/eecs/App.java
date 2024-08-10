@@ -54,7 +54,7 @@ public class App //starter code
         try {
         	db.createConstraints();
         } catch (ClientException e) {
-        	//do nothing if it already exists
+        	System.out.println("Constraints already exist.");
         }
         
         server.createContext("/api/v1/addActor", new AddActorHttpHandler(db));
@@ -142,15 +142,21 @@ class AddActorHttpHandler implements HttpHandler {
 	        			String actorName = jsonObject.getString("name");
 	        			String actorId = jsonObject.getString("actorId");
 	        			
-	        			db.addActor(actorName, actorId);
+	        			if(db.getActorById(actorId) != null) {
+	        				String response = "PUT request failed; Actor with actorId already exists. Data: " + requestBody;
+	    	                responseSender.sendResponseAndClose(exchange, 400, response);
+	        			} else {
+	        				db.addActor(actorName, actorId);
+	        				
+	    	            	//respond with success message
+	    	                String response = "PUT request successful. Data: " + requestBody;
+	    	                responseSender.sendResponseAndClose(exchange, 200, response);
+	        			}
 	        			
 	        		} catch (JSONException e) {
 	        			e.printStackTrace();
 	        		}
 	            	
-	            	//respond with success message
-	                String response = "PUT request successful. Data: " + requestBody;
-	                responseSender.sendResponseAndClose(exchange, 200, response);
 	            } else {
 	            	
 	            	//respond with fail message
@@ -253,15 +259,20 @@ class AddMovieHttpHandler implements HttpHandler {
 	        			
 	        			String movieRelease = jsonObject.optString("release"); //can be empty
 	        			
-	        			db.addMovie(movieId, movieName, movieRelease);
+	        			if(db.getMovieById(movieId) != null) {
+	        				String response = "PUT request failed; Movie with movieId already exists. Data: " + requestBody;
+	    	                responseSender.sendResponseAndClose(exchange, 400, response);
+	        			} else {
+	    	            	//respond with success message
+	    	                String response = "PUT request successful. Data: " + requestBody;
+	    	                responseSender.sendResponseAndClose(exchange, 200, response);
+	        				db.addMovie(movieId, movieName, movieRelease);
+	        			}
 	        			
 	        		} catch (JSONException e) {
 	        			e.printStackTrace();
 	        		}
 	            	
-	            	//respond with success message
-	                String response = "PUT request successful. Data: " + requestBody;
-	                responseSender.sendResponseAndClose(exchange, 200, response);
 	            } else {
 	            	
 	            	//respond with fail message
