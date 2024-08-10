@@ -214,6 +214,33 @@ public class AppTest
          */
     }
     
+    public void testcomputeBaconPathFail() throws Exception {
+    	
+    	initializeBaconFailStuff();
+        
+        Thread.sleep(500);
+        
+        //no path to bacon
+        HttpURLConnection connection1 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"pp1234567\" }");
+        
+        //actor not found
+        HttpURLConnection connection2 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"asdklhfku\" }");
+        
+        //bad syntax
+        HttpURLConnection connection3 = sendGetRequest("/api/v1/computeBaconNumber", "{  ");
+        
+        //missing info
+        HttpURLConnection connection4 = sendGetRequest("/api/v1/computeBaconNumber", "{  }");
+        
+        Thread.sleep(500);
+        
+        assertEquals(404, connection1.getResponseCode());
+        assertEquals(404, connection2.getResponseCode());
+        assertEquals(400, connection3.getResponseCode());
+        assertEquals(400, connection4.getResponseCode());
+        
+    }
+    
 
 
     private HttpURLConnection sendPutRequest(String endpoint, String jsonInputString) throws Exception {
