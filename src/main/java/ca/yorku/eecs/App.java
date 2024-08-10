@@ -927,21 +927,26 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
     public ComputeBaconPathHttpHandler(DBNew db) {
         this.db = db;
     }
+    
+    
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("GET".equals(exchange.getRequestMethod())) {
-            String query = exchange.getRequestURI().getQuery();
-            Map<String, String> params = queryToMap(query);
-            String actorId = params.get("actorId");
+    	
+    	System.out.println("Got a ComputeBaconNumber request");
 
-            if (actorId == null || actorId.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required field: actorId");
-                return;
-            }
+        	
+    	String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+    	
+        JSONValidationData validation = validateJSON(requestBody);
 
-            try {
-                List<String> baconPath = db.computeBaconPath(actorId);
+        if(validation.valid) {
+        	try {
+        		
+        		JSONObject data = new JSONObject(requestBody);
+        		String actorId = data.getString("actorId");
+        		
+        		List<String> baconPath = db.computeBaconPath(actorId);
 
                 if (baconPath == null || baconPath.isEmpty()) {
                     responseSender.sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
@@ -953,24 +958,51 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
                 jsonResponse.put("baconPath", baconPath);
 
                 responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
+
             } catch (Exception e) {
                 responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
         } else {
-            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+        	responseSender.sendResponseAndClose(exchange, 400, "GET request failed with message: " + validation.message);
         }
-    }
 
-    private Map<String, String> queryToMap(String query) {
-        Map<String, String> result = new HashMap<>();
-        for (String param : query.split("&")) {
-            String[] entry = param.split("=");
-            result.put(entry[0], entry[1]);
-        }
-        return result;
     }
     
-    
+    /**
+	 * Validates a JSON string for this API endpoint.
+	 * 
+	 * Criteria:
+	 * 1. The syntax is correct
+	 * 3. actorId is not null or empty
+	 *  
+	 * @param json the JSON string to validate
+	 * @return a JSONValidationData object with property "valid" set to true if it's valid according to the aforementioned criteria, false otherwise
+	 */
+	public JSONValidationData validateJSON(String json) {
+		
+		StringBuilder message = new StringBuilder();
+		boolean valid = true;
+		
+		JSONObject jsonObject;
+        String actorId = null;
+        
+        try {
+			jsonObject = new JSONObject(json);
+			actorId = jsonObject.optString("actorId");
+	        
+	        if(actorId == null || actorId.isEmpty()) {
+	        	valid = false;
+	        	message.append("Validation failed: actorId is empty or not found\n");
+	        }
+			
+		} catch (JSONException e) {
+			message.append("Validation failed: JSON syntax error: " + e.getMessage());
+			return new JSONValidationData(false, message.toString());
+		}
+        
+        return new JSONValidationData(valid, message.toString());
+		
+	}
     
 }
 

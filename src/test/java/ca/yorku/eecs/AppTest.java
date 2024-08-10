@@ -141,6 +141,97 @@ public class AppTest
     
     public void testcomputeBaconNumberPass() throws Exception {
     	
+    	initializeBaconStuff();
+        
+        Thread.sleep(500);
+        
+        HttpURLConnection connection14 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"cc123\" }");
+        
+        Thread.sleep(500);
+        
+        int responseCode = connection14.getResponseCode();
+        
+        assertEquals(200, responseCode);
+        
+        JSONObject data = new JSONObject(getResponse(connection14));
+        
+        assertEquals(3, data.getInt("baconNumber"));
+        
+    }
+    
+    public void testcomputeBaconPathPass() throws Exception {
+    	
+    	initializeBaconStuff();
+        
+        Thread.sleep(500);
+        
+        HttpURLConnection connection14 = sendGetRequest("/api/v1/computeBaconPath", "{ actorId: \"cc123\" }");
+        
+        Thread.sleep(500);
+        
+        int responseCode = connection14.getResponseCode();
+        
+        assertEquals(200, responseCode);
+        
+        JSONObject data = new JSONObject(getResponse(connection14));
+        
+        //System.out.println("bacon path " + data);
+        
+        assertEquals("[\"Kevin Bacon\",\"Transformers\",\"Max Maxwell\",\"Inside Out 4\",\"Judy Judith\",\"Among Us\",\"Cooper Copper\"]", data.getString("baconPath"));
+    	
+    	/*
+         * Bacon Path:
+			The Bacon Path from cc is:
+			cc → AM → jj → II → mm → TF → kb
+			This path lists the actors and movies connecting cc to Kevin Bacon.
+         */
+    }
+    
+
+
+    private HttpURLConnection sendPutRequest(String endpoint, String jsonInputString) throws Exception {
+        URL url = new URL("http://localhost:" + app.PORT + endpoint);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("PUT");
+        connection.setRequestProperty("Content-Type", "application/json; utf-8");
+        connection.setDoOutput(true);
+
+        try(OutputStream os = connection.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+
+        return connection;
+    }
+    
+    private HttpURLConnection sendGetRequest(String endpoint, String jsonInputString) throws Exception {
+        URL url = new URL("http://localhost:" + app.PORT + endpoint);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Content-Type", "application/json; utf-8");
+        connection.setDoOutput(true);
+
+        try (OutputStream os = connection.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+
+        return connection;
+    }
+
+    private String getResponse(HttpURLConnection connection) throws Exception {
+        try(java.io.BufferedReader in = new java.io.BufferedReader(
+            new java.io.InputStreamReader(connection.getInputStream(), "utf-8"))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine;
+            while ((responseLine = in.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            return response.toString();
+        }
+    }
+    
+    void initializeBaconStuff() throws Exception{
     	//put people into the thing first
         String addPerson1 = "{ "
         		+ "actorId: \"cc123\", "
@@ -240,78 +331,5 @@ public class AppTest
 			cc → AM → jj → II → mm → TF → kb
 			This path has 6 connections between cc and kb, so the Bacon Number for cc is 6.
          */
-        
-        Thread.sleep(500);
-        
-        HttpURLConnection connection14 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"cc123\" }");
-        
-        Thread.sleep(500);
-        
-        int responseCode = connection14.getResponseCode();
-        
-        assertEquals(200, responseCode);
-        
-        JSONObject data = new JSONObject(getResponse(connection14));
-        
-        
-        assertEquals(3, data.getInt("baconNumber"));
-        
-        
-        /*
-         * Bacon Path:
-			The Bacon Path from cc is:
-			cc → AM → jj → II → mm → TF → kb
-			This path lists the actors and movies connecting cc to Kevin Bacon.
-         */
-        
-        //assertEquals(200, responseCode);
-        //assertEquals(true, true);
-
-    }
-    
-    
-    
-
-
-    private HttpURLConnection sendPutRequest(String endpoint, String jsonInputString) throws Exception {
-        URL url = new URL("http://localhost:" + app.PORT + endpoint);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("PUT");
-        connection.setRequestProperty("Content-Type", "application/json; utf-8");
-        connection.setDoOutput(true);
-
-        try(OutputStream os = connection.getOutputStream()) {
-            byte[] input = jsonInputString.getBytes("utf-8");
-            os.write(input, 0, input.length);
-        }
-
-        return connection;
-    }
-    
-    private HttpURLConnection sendGetRequest(String endpoint, String jsonInputString) throws Exception {
-        URL url = new URL("http://localhost:" + app.PORT + endpoint);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("Content-Type", "application/json; utf-8");
-        connection.setDoOutput(true);
-
-        try (OutputStream os = connection.getOutputStream()) {
-            byte[] input = jsonInputString.getBytes("utf-8");
-            os.write(input, 0, input.length);
-        }
-
-        return connection;
-    }
-
-    private String getResponse(HttpURLConnection connection) throws Exception {
-        try(java.io.BufferedReader in = new java.io.BufferedReader(
-            new java.io.InputStreamReader(connection.getInputStream(), "utf-8"))) {
-            StringBuilder response = new StringBuilder();
-            String responseLine;
-            while ((responseLine = in.readLine()) != null) {
-                response.append(responseLine.trim());
-            }
-            return response.toString();
-        }
     }
 }
