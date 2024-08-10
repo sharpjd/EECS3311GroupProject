@@ -26,7 +26,11 @@ import org.json.*;
 
 public class App //starter code
 {  	
-	static DBNew db;
+	private static DBNew db;
+	
+	public static DBNew getDb(){
+		return db;
+	}
 	
 	private static String uriDb = "bolt://localhost:7687";
 	private static String username = "neo4j";

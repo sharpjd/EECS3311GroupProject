@@ -64,7 +64,7 @@ public class AppTest
     
     public void testaddActorPass() throws Exception {
         String jsonInputString = "{ "
-        		+ "actorId: \"1234567\", "
+        		+ "actorId: \"js1234567\", "
         		+ "name: \"John Smith\" "
         		+ "} ";
         HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
@@ -75,7 +75,9 @@ public class AppTest
 
         String response = getResponse(connection);
         assertTrue(response.contains("PUT request successful"));
-    }
+        
+        app.getDb().removeActor("js1234567"); //must remove it otherwise this test is not repeatable
+    } 
     
     public void testaddActorFail() throws Exception {
     	
@@ -132,7 +134,106 @@ public class AppTest
      * 
      */
     
-    
+    public void testcomputeBaconNumberPass() throws Exception {
+    	
+    	//put people into the thing first
+        String addPerson1 = "{ "
+        		+ "actorId: \"cc123\", "
+        		+ "name: \"Cooper Copper\" "
+        		+ "} ";
+        String addPerson2 = "{ "
+        		+ "actorId: \"mm1234\", "
+        		+ "name: \"Max Maxwell\" "
+        		+ "} ";
+        String addPerson3 = "{ "
+        		+ "actorId: \"jj12345\", "
+        		+ "name: \"Judy Judith\" "
+        		+ "} ";        
+        String addKevinBacon = "{ "
+        		+ "actorId: \"kb123456\", "
+        		+ "name: \"Kevin Bacon\" "
+        		+ "} ";        
+        HttpURLConnection connection = sendPutRequest("/api/v1/addActor", addPerson1);
+        HttpURLConnection connection2 = sendPutRequest("/api/v1/addActor", addPerson2);
+        HttpURLConnection connection3 = sendPutRequest("/api/v1/addActor", addPerson3);
+        HttpURLConnection connection4 = sendPutRequest("/api/v1/addActor", addKevinBacon);
+
+        
+        System.out.println("adding stuff: " + connection.getResponseCode());
+        
+        
+        String addMovie1 = "{ "
+        		+ "movieId: \"am123\", "
+        		+ "name: \"Among Us\" "
+        		+ "} ";
+        String addMovie2 = "{ "
+        		+ "movieId: \"ii1234\", "
+        		+ "name: \"Inside Out 4\" "
+        		+ "} ";
+        String addMovie3 = "{ "
+        		+ "movieId: \"tf12345\", "
+        		+ "name: \"Transformers\" "
+        		+ "} ";
+        HttpURLConnection connection5 = sendPutRequest("/api/v1/addMovie", addMovie1);
+        HttpURLConnection connection6 = sendPutRequest("/api/v1/addMovie", addMovie2);
+        HttpURLConnection connection7 = sendPutRequest("/api/v1/addMovie", addMovie3);
+        
+        String addRelation1 = "{ "
+        		+ "actorId: \"cc123\", "
+        		+ "movieId: \"am123\" "
+        		+ "} ";
+        String addRelation2 = "{ "
+        		+ "actorId: \"jj12345\", "
+        		+ "movieId: \"am123\" "
+        		+ "} ";
+        String addRelation3 = "{ "
+        		+ "actorId: \"jj12345\", "
+        		+ "movieId: \"ii1234\" "
+        		+ "} ";
+        String addRelation4 = "{ "
+        		+ "actorId: \"mm1234\", "
+        		+ "movieId: \"ii1234\" "
+        		+ "} ";
+        String addRelation5 = "{ "
+        		+ "actorId: \"mm1234\", "
+        		+ "movieId: \"tf12345\" "
+        		+ "} ";
+        String addRelation6 = "{ "
+        		+ "actorId: \"kb123456\", "
+        		+ "movieId: \"tf12345\" "
+        		+ "} ";
+        HttpURLConnection connection8 = sendPutRequest("/api/v1/addRelationship", addRelation1);
+        HttpURLConnection connection9 = sendPutRequest("/api/v1/addRelationship", addRelation2);
+        HttpURLConnection connection10 = sendPutRequest("/api/v1/addRelationship", addRelation3);
+        HttpURLConnection connection11 = sendPutRequest("/api/v1/addRelationship", addRelation4);
+        HttpURLConnection connection12 = sendPutRequest("/api/v1/addRelationship", addRelation5);
+        HttpURLConnection connection13 = sendPutRequest("/api/v1/addRelationship", addRelation6);
+        
+        /* 
+         * Bacon Number for cc:
+			cc → AM → jj → II → mm → TF → kb
+			This path has 6 connections between cc and kb, so the Bacon Number for cc is 6.
+         */
+        
+        HttpURLConnection connection14 = sendPutRequest("/api/v1/computerBaconNumber", "{ actorId: \"cc123\" }");
+        int responseCode = connection14.getResponseCode();
+        assertEquals(responseCode, 200);
+        
+        int result = app.getDb().computeBaconNumber("cc123");
+        assertEquals(result, 6);
+        
+        
+        /*
+         * Bacon Path:
+			The Bacon Path from cc is:
+			cc → AM → jj → II → mm → TF → kb
+			This path lists the actors and movies connecting cc to Kevin Bacon.
+         */
+        
+        //assertEquals(200, responseCode);
+        //assertEquals(true, true);
+
+    }
     
     
     

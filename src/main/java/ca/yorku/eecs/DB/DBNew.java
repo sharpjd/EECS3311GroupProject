@@ -32,7 +32,8 @@ public class DBNew {
 		}
 	}
 
-		public void addRandomAwardToActors() {
+/*
+	public void addRandomAwardToActors() {
 	    List<String> awards = Arrays.asList("Best Actor", "Best Supporting Actor", "Lifetime Achievement");
 	    Random random = new Random();
 	    String query = "MATCH (a:Actor) RETURN a.actorId AS actorId";
@@ -64,6 +65,7 @@ public class DBNew {
 			tx.success();
 		}
 	}
+	*/
 	
 	/**
 	 * Sets the rating of a Movie with the specified title.
@@ -192,6 +194,29 @@ public class DBNew {
 			 * 
 			 * and the below statement is also require in order for the function to not hang
 			 */
+			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
+			
+			transaction.success();
+		}
+	}
+	
+	/**
+	 * Remove an Actor node to the database.
+	 * @param actorName
+	 * @param actorId
+	 */
+	public void removeActor(String actorId) {
+		try(Session session = DBUtil.getSession()){
+			
+			Transaction transaction = session.beginTransaction();
+			
+			Statement query = new Statement("MATCH (a: Actor) "
+					+ "WHERE a.actorId = $actorId "
+					+ "DELETE a; ",
+					Map.of("actorId", actorId));
+			
+			StatementResult result = transaction.run(query);
+						
 			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
 			
 			transaction.success();
