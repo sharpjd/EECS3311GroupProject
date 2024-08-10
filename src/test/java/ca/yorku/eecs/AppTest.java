@@ -64,6 +64,8 @@ public class AppTest
     
     public void testaddActorPass() throws Exception {
     	
+    	Thread.sleep(500); //prevents a null
+    	
     	app.getDb().removeActor("js1234567"); //must remove it otherwise this test is not repeatable
     	
         String jsonInputString = "{ "
@@ -281,17 +283,11 @@ public class AppTest
         return connection;
     }
     
-    private HttpURLConnection sendGetRequest(String endpoint, String jsonInputString) throws Exception {
-        URL url = new URL("http://localhost:" + app.PORT + endpoint);
+    private HttpURLConnection sendGetRequest(String endpoint, String query) throws Exception {
+    	 URL url = new URL("http://localhost:" + app.PORT + endpoint + "?" + query);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Content-Type", "application/json; utf-8");
-        connection.setDoOutput(true);
-
-        try(OutputStream os = connection.getOutputStream()) {
-            byte[] input = jsonInputString.getBytes("utf-8");
-            os.write(input, 0, input.length);
-        }
 
         return connection;
     }
