@@ -141,7 +141,7 @@ public class AppTest
     
     public void testcomputeBaconNumberPass() throws Exception {
     	
-    	initializeBaconStuff();
+    	initializeBaconPassStuff();
         
         Thread.sleep(500);
         
@@ -159,9 +159,36 @@ public class AppTest
         
     }
     
+    public void testcomputeBaconNumberFail() throws Exception {
+    	
+    	initializeBaconFailStuff();
+        
+        Thread.sleep(500);
+        
+        //no path to bacon
+        HttpURLConnection connection1 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"pp1234567\" }");
+        
+        //actor not found
+        HttpURLConnection connection2 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"asdklhfku\" }");
+        
+        //bad syntax
+        HttpURLConnection connection3 = sendGetRequest("/api/v1/computeBaconNumber", "{  ");
+        
+        //missing info
+        HttpURLConnection connection4 = sendGetRequest("/api/v1/computeBaconNumber", "{  }");
+        
+        Thread.sleep(500);
+        
+        assertEquals(404, connection1.getResponseCode());
+        assertEquals(404, connection2.getResponseCode());
+        assertEquals(400, connection3.getResponseCode());
+        assertEquals(400, connection4.getResponseCode());
+        
+    }
+    
     public void testcomputeBaconPathPass() throws Exception {
     	
-    	initializeBaconStuff();
+    	initializeBaconPassStuff();
         
         Thread.sleep(500);
         
@@ -231,7 +258,7 @@ public class AppTest
         }
     }
     
-    void initializeBaconStuff() throws Exception{
+    void initializeBaconPassStuff() throws Exception{
     	//put people into the thing first
         String addPerson1 = "{ "
         		+ "actorId: \"cc123\", "
@@ -331,5 +358,13 @@ public class AppTest
 			cc → AM → jj → II → mm → TF → kb
 			This path has 6 connections between cc and kb, so the Bacon Number for cc is 6.
          */
+    }
+    
+    void initializeBaconFailStuff() throws Exception {
+    	String addPerson1 = "{ "
+        		+ "actorId: \"pp1234567\", "
+        		+ "name: \"Petra Peter\" "
+        		+ "} ";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addActor", addPerson1);
     }
 }
