@@ -92,7 +92,8 @@ public class DBNew {
 	 */
 	public String getMoviesWithRating(String minRating) {
 		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (m:Movie) WHERE m.rating >= $rating RETURN m.name AS name", Map.of("rating", String.format("%.1f", minRating)));
+			float fminRating = Float.parseFloat(minRating);
+			StatementResult result = session.run("MATCH (m:Movie) WHERE m.rating >= $rating RETURN m.name AS name", Map.of("rating", String.format("%.1f", fminRating)));
 			JSONArray jsonArray = new JSONArray();
 			while(result.hasNext()) {
 				Record record = result.next();
