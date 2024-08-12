@@ -1017,3 +1017,188 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
     
 }
 
+
+/**
+ * API endpoint for getMoviesWithRating
+ */
+class GetMoviesWithRatingHttpHandler implements HttpHandler {
+
+    private DBNew db;
+    ResponseSender responseSender = new ResponseSender();
+
+    public GetMoviesWithRatingHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String minRating = params.get("minRating");
+
+            if(minRating == null || minRating.isEmpty()) {
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: minRating");
+                return;
+            }
+
+            try{
+                // check if minRating is numeric
+                Float.parseFloat(minRating);
+
+                String moviesJson = db.getMoviesWithRating(minRating);
+
+                if(moviesJson != null) {
+                    responseSender.sendResponseAndClose(exchange, 200, moviesJson);
+                } else {
+                    responseSender.sendResponseAndClose(exchange, 404, "No movies found with the given rating");
+                }   
+            } catch (NumberFormatException e) {
+                responseSender.sendResponseAndClose(exchange, 400, "Invalid format for minRating: must be a numeric value");
+            } catch (Exception e) {
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }            
+        } else {
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+		if(query == null || query.isEmpty()) return result;
+
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=", 2);
+			if(entry.length == 2) {
+				result.put(entry[0], entry[1]);
+			}
+			else if(entry.length == 1) {
+				result.put(entry[0], "");
+			}
+        }
+        return result;
+    }
+}
+
+/**
+ * API endpoint for getMoviesByReleaseYear
+ */
+class GetMoviesByReleaseYearHttpHandler implements HttpHandler {
+
+    private DBNew db;
+    ResponseSender responseSender = new ResponseSender();
+
+    public GetMoviesByReleaseYearHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String year = params.get("year");
+
+            if(year == null || year.isEmpty()) {
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: year");
+                return;
+            }
+
+            try{
+                // check if year is numeric
+                Float.parseFloat(year);
+
+                String moviesJson = db.getMoviesByReleaseYear("year");
+
+                if(moviesJson != null) {
+                    responseSender.sendResponseAndClose(exchange, 200, moviesJson);
+                } else {
+                    responseSender.sendResponseAndClose(exchange, 404, "No movies found with the given year");
+                }   
+            } catch (NumberFormatException e) {
+                responseSender.sendResponseAndClose(exchange, 400, "Invalid format for minRating: must be a numeric value");
+            } catch (Exception e) {
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }            
+        } else {
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+		if(query == null || query.isEmpty()) return result;
+
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=", 2);
+			if(entry.length == 2) {
+				result.put(entry[0], entry[1]);
+			}
+			else if(entry.length == 1) {
+				result.put(entry[0], "");
+			}
+        }
+        return result;
+    }
+}
+
+/**
+ * API endpoint for getActorsByAward
+ */
+class GetActorsByAwardHttpHandler implements HttpHandler {
+
+    private DBNew db;
+    ResponseSender responseSender = new ResponseSender();
+
+    public GetActorsByAwardHttpHandler(DBNew db) {
+        this.db = db;
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            String year = params.get("award");
+
+            if(year == null || year.isEmpty()) {
+                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: award");
+                return;
+            }
+
+            try{
+
+                String actorsJson = db.getActorsByAward("award");
+
+                if(actorsJson != null) {
+                    responseSender.sendResponseAndClose(exchange, 200, actorsJson);
+                } else {
+                    responseSender.sendResponseAndClose(exchange, 404, "No actors found with the given award");
+                }
+            } catch (Exception e) {
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+            }            
+        } else {
+            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+        }
+    }
+
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+		if(query == null || query.isEmpty()) return result;
+
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=", 2);
+			if(entry.length == 2) {
+				result.put(entry[0], entry[1]);
+			}
+			else if(entry.length == 1) {
+				result.put(entry[0], "");
+			}
+        }
+        return result;
+    }
+}
