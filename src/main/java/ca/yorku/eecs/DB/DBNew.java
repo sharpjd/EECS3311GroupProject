@@ -334,47 +334,53 @@ public class DBNew {
      * @return
      */
     public String getMovieById(String movieId) {
-	    try (Session session = DBUtil.getSession()) {
-	        // Fetch the movie details
-	        StatementResult movieResult = session.run(
-	            "MATCH (m:Movie {movieId: $movieId}) " +
-	            "RETURN m.name AS name, m.movieId AS movieId", 
-	            Map.of("movieId", movieId)
-	        );
-	
-	        if (movieResult.hasNext()) {
-	            Record movieRecord = movieResult.next();
-	            JSONObject jsonObject = new JSONObject();
-	            jsonObject.put("movieId", movieRecord.get("movieId").asString());
-	            jsonObject.put("name", movieRecord.get("name").asString());
-	
-	            // Fetch the list of actors associated with the movie
-	            StatementResult actorResult = session.run(
-	                "MATCH (m:Movie {movieId: $movieId})<-[:ACTED_IN]-(a:Actor) " +
-	                "RETURN a.actorId AS actorId", 
-	                Map.of("movieId", movieId)
-	            );
-	
-	            JSONArray actors = new JSONArray();
-	            while (actorResult.hasNext()) {
-	                Record actorRecord = actorResult.next();
-	                actors.put(actorRecord.get("actorId").asString());
-	            }
-	            jsonObject.put("actors", actors);
-	
-	            return jsonObject.toString();
-	        } 
-		
-		else {
-	            return null; // Movie not found
-	        }
-	    } 
-		    
-		catch (JSONException e) {
-	        	e.printStackTrace();
-	        	return null; // In case of JSON processing error
-	    }
+        try (Session session = DBUtil.getSession()) {
+            // Start a transaction
+            try (Transaction tx = session.beginTransaction()) {
+                
+                // Fetch the movie details
+                StatementResult movieResult = tx.run(
+                    "MATCH (m:Movie {movieId: $movieId}) " +
+                    "RETURN m.name AS name, m.movieId AS movieId", 
+                    Map.of("movieId", movieId)
+                );
+
+                if (movieResult.hasNext()) {
+                    Record movieRecord = movieResult.next();
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("movieId", movieRecord.get("movieId").asString());
+                    jsonObject.put("name", movieRecord.get("name").asString());
+
+                    // Fetch the list of actors associated with the movie
+                    StatementResult actorResult = tx.run(
+                        "MATCH (m:Movie {movieId: $movieId})<-[:ACTED_IN]-(a:Actor) " +
+                        "RETURN a.actorId AS actorId", 
+                        Map.of("movieId", movieId)
+                    );
+
+                    JSONArray actors = new JSONArray();
+                    while (actorResult.hasNext()) {
+                        Record actorRecord = actorResult.next();
+                        actors.put(actorRecord.get("actorId").asString());
+                    }
+                    jsonObject.put("actors", actors);
+
+                    // Commit the transaction
+                    tx.close();
+
+                    return jsonObject.toString();
+                } else {
+                    // Rollback the transaction if no movie found
+                    return null;
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null; // In case of JSON processing error
+        }
     }
+    
+    
 
 
     /**

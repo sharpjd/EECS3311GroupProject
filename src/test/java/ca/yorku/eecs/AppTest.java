@@ -66,7 +66,7 @@ public class AppTest
     
     public void testaddActorPass() throws Exception {
     	
-    	Thread.sleep(500); //prevents a null
+    	Thread.sleep(1000); //prevents a null
     	
     	app.getDb().removeActor("js1234567"); //must remove it otherwise this test is not repeatable
     	

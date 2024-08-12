@@ -695,19 +695,21 @@ class GetMovieHttpHandler implements HttpHandler {
                 }
 
                 // Retrieve the movie details
-                String movieName = db.getMovieNameById(movieId);
-                if (movieName == null) {
+                String movieData = db.getMovieById(movieId);
+                if (movieData == null) {
                     responseSender.sendResponseAndClose(exchange, 404, "Movie not found");
                     return;
                 }
+                
+                JSONObject movieDataJson = new JSONObject(movieData);
 
                 // Get the list of actors in this movie
-                List<String> actors = db.getActorsByMovieId(movieId);
+                List<String> actors = db.getActorsByMovie(movieId);
 
                 // Construct the response
                 JSONObject jsonResponse = new JSONObject();
                 jsonResponse.put("movieId", movieId);
-                jsonResponse.put("name", movieName);
+                jsonResponse.put("name", movieDataJson.get("name"));
                 jsonResponse.put("actors", actors);
 
                 responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
@@ -790,7 +792,7 @@ class HasRelationshipHttpHandler implements HttpHandler {
             responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
-}
+
     
     /**
 	 * Validates a JSON string for this API endpoint.
