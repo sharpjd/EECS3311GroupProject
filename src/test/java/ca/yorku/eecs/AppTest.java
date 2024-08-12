@@ -138,7 +138,209 @@ public class AppTest
      * 
      * 
      */
-    
+	
+    public void testaddRelationshipPass() throws Exception {
+        initializeAddRelationshipPassStuff();
+
+        String jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addRelationship", jsonInputString);
+
+        int responseCode = connection.getResponseCode();
+        assertEquals(200, responseCode);
+
+        String response = getResponse(connection);
+        assertTrue(response.contains("Relationship added successfully"));
+    }
+
+    public void testaddRelationshipFail() throws Exception {
+        // Missing actorId
+        String jsonInputString = "{ movieId: \"tt1234567\" }";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addRelationship", jsonInputString);
+        assertEquals(400, connection.getResponseCode());
+
+        // Missing movieId
+        jsonInputString = "{ actorId: \"nm0000001\" }";
+        connection = sendPutRequest("/api/v1/addRelationship", jsonInputString);
+        assertEquals(400, connection.getResponseCode());
+
+        // Actor or movie not found
+        jsonInputString = "{ actorId: \"nm9999999\", movieId: \"tt1234567\" }";
+        connection = sendPutRequest("/api/v1/addRelationship", jsonInputString);
+        assertEquals(404, connection.getResponseCode());
+
+        // Malformed JSON
+        jsonInputString = "{";
+        connection = sendPutRequest("/api/v1/addRelationship", jsonInputString);
+        assertEquals(400, connection.getResponseCode());
+    }
+
+    // Initialization methods for setting up the test environment
+    private void initializeGetActorPassStuff() throws Exception {
+        // Add an actor for testing
+        String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
+        System.out.println(connection.getResponseCode());
+
+        // Add a movie and relationship for testing
+        String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
+        connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
+        System.out.println(connection.getResponseCode());
+
+        String relationshipJsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+        connection = sendPutRequest("/api/v1/addRelationship", relationshipJsonInputString);
+        System.out.println(connection.getResponseCode());
+    }
+
+    private void initializeGetMoviePassStuff() throws Exception {
+        // Add a movie and actor for testing
+        String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
+        System.out.println(connection.getResponseCode());
+
+        String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
+        connection = sendPutRequest("/api/v1/addActor", jsonInputString);
+        System.out.println(connection.getResponseCode());
+
+        String relationshipJsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+        connection = sendPutRequest("/api/v1/addRelationship", relationshipJsonInputString);
+        System.out.println(connection.getResponseCode());
+    }
+
+    private void initializeAddRelationshipPassStuff() throws Exception {
+        // Add an actor and movie for testing
+        String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
+        System.out.println(connection.getResponseCode());
+
+        String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
+        connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
+        System.out.println(connection.getResponseCode());
+    }
+
+
+    public void testgetActorPass() throws Exception {
+        initializeGetActorPassStuff();
+
+        Thread.sleep(500);
+
+        HttpURLConnection connection = sendGetRequest("/api/v1/getActor", "{ actorId: \"nm0000001\" }");
+
+        int responseCode = connection.getResponseCode();
+        assertEquals(200, responseCode);
+
+        JSONObject data = new JSONObject(getResponse(connection));
+        assertEquals("nm0000001", data.getString("actorId"));
+        assertEquals("John Doe", data.getString("name"));
+        assertTrue(data.getJSONArray("movies").length() > 0);
+    }
+
+
+    public void testgetActorFail() throws Exception {
+        // actor not found
+        HttpURLConnection connection = sendGetRequest("/api/v1/getActor", "{ actorId: \"nonexistent\" }");
+        assertEquals(404, connection.getResponseCode());
+
+        // missing actorId
+        connection = sendGetRequest("/api/v1/getActor", "{ }");
+        assertEquals(400, connection.getResponseCode());
+
+        // malformed JSON
+        connection = sendGetRequest("/api/v1/getActor", "{");
+        assertEquals(400, connection.getResponseCode());
+    }
+
+
+    public void testgetMoviePass() throws Exception {
+        initializeGetMoviePassStuff();
+
+        Thread.sleep(500);
+
+        HttpURLConnection connection = sendGetRequest("/api/v1/getMovie", "{ movieId: \"tt1234567\" }");
+
+        int responseCode = connection.getResponseCode();
+        assertEquals(200, responseCode);
+
+        JSONObject data = new JSONObject(getResponse(connection));
+        assertEquals("tt1234567", data.getString("movieId"));
+        assertEquals("Sample Movie", data.getString("name"));
+        assertTrue(data.getJSONArray("actors").length() > 0);
+    }
+
+    public void testgetMovieFail() throws Exception {
+        // Movie not found
+        HttpURLConnection connection = sendGetRequest("/api/v1/getMovie", "{ movieId: \"nonexistent\" }");
+        assertEquals(404, connection.getResponseCode());
+
+        // Missing movieId
+        connection = sendGetRequest("/api/v1/getMovie", "{ }");
+        assertEquals(400, connection.getResponseCode());
+
+        // Malformed JSON
+        connection = sendGetRequest("/api/v1/getMovie", "{");
+        assertEquals(400, connection.getResponseCode());
+    }
+
+
+    public void testhasRelationshipPass() throws Exception {
+    initializeHasRelationshipPassStuff();
+
+    String jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+    HttpURLConnection connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+
+    int responseCode = connection.getResponseCode();
+    assertEquals(200, responseCode);
+
+    JSONObject data = new JSONObject(getResponse(connection));
+    assertEquals("nm0000001", data.getString("actorId"));
+    assertEquals("tt1234567", data.getString("movieId"));
+    assertTrue(data.getBoolean("hasRelationship"));
+   }
+
+   public void testhasRelationshipFail() throws Exception {
+    // Missing actorId
+    String jsonInputString = "{ movieId: \"tt1234567\" }";
+    HttpURLConnection connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+    assertEquals(400, connection.getResponseCode());
+
+    // Missing movieId
+    jsonInputString = "{ actorId: \"nm0000001\" }";
+    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+    assertEquals(400, connection.getResponseCode());
+
+    // Actor not found
+    jsonInputString = "{ actorId: \"nm9999999\", movieId: \"tt1234567\" }";
+    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+    assertEquals(404, connection.getResponseCode());
+
+    // Movie not found
+    jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt9999999\" }";
+    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+    assertEquals(404, connection.getResponseCode());
+
+    // Malformed JSON
+    jsonInputString = "{";
+    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+    assertEquals(400, connection.getResponseCode());
+}
+
+private void initializeHasRelationshipPassStuff() throws Exception {
+    // Add an actor for testing
+    String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
+    HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
+    System.out.println(connection.getResponseCode());
+
+    // Add a movie for testing
+    String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
+    connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
+    System.out.println(connection.getResponseCode());
+
+    // Create a relationship between the actor and the movie
+    String relationshipJsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+    connection = sendPutRequest("/api/v1/addRelationship", relationshipJsonInputString);
+    System.out.println(connection.getResponseCode());
+}
+
+   
     public void testcomputeBaconNumberPass() throws Exception {
     	
     	initializeBaconPassStuff();
