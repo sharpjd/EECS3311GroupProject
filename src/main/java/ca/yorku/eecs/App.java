@@ -669,6 +669,7 @@ class GetActorHttpHandler implements HttpHandler {
  * API endpoint for getMovie.
  */
 class GetMovieHttpHandler implements HttpHandler {
+
     private DBNew db;
     private ResponseSender responseSender = new ResponseSender();
 
@@ -690,15 +691,23 @@ class GetMovieHttpHandler implements HttpHandler {
                     return;
                 }
 
-                String movieJson = db.getMovieById(movieId);
-
-                if (movieJson != null) {
-                    responseSender.sendResponseAndClose(exchange, 200, movieJson);
-                } 
-		
-		else {
+                // Retrieve the movie details
+                String movieName = db.getMovieNameById(movieId);
+                if (movieName == null) {
                     responseSender.sendResponseAndClose(exchange, 404, "Movie not found");
+                    return;
                 }
+
+                // Get the list of actors in this movie
+                List<String> actors = db.getActorsByMovieId(movieId);
+
+                // Construct the response
+                JSONObject jsonResponse = new JSONObject();
+                jsonResponse.put("movieId", movieId);
+                jsonResponse.put("name", movieName);
+                jsonResponse.put("actors", actors);
+
+                responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
             } 
 	    
 	    catch (JSONException e) {
@@ -715,6 +724,7 @@ class GetMovieHttpHandler implements HttpHandler {
         }
     }
 }
+
 
 /**
  * API endpoint for hasRelationship.
