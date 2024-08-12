@@ -618,6 +618,7 @@ class AddRelationShipHttpHandler implements HttpHandler {
  * API endpoint for getActor.
  */
 class GetActorHttpHandler implements HttpHandler {
+
     private DBNew db;
     private ResponseSender responseSender = new ResponseSender();
 
@@ -639,6 +640,7 @@ class GetActorHttpHandler implements HttpHandler {
                     return;
                 }
 
+                // Fetch actor details including the list of movies
                 String actorJson = db.getActorById(actorId);
 
                 if (actorJson != null) {
@@ -664,6 +666,7 @@ class GetActorHttpHandler implements HttpHandler {
         }
     }
 }
+
 
 /**
  * API endpoint for getMovie.
