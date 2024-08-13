@@ -6,8 +6,6 @@ import java.net.InetSocketAddress;
 
 import com.sun.net.httpserver.HttpServer;
 
-//our own imports
-import ca.yorku.eecs.DB.DBFacade;
 import ca.yorku.eecs.DB.DBNew;
 import ca.yorku.eecs.DB.DBUtil;
 
@@ -65,6 +63,11 @@ public class App //starter code
 		server.createContext("/api/v1/hasRelationship", new HasRelationshipHttpHandler(db));
 		server.createContext("/api/v1/computeBaconNumber", new ComputeBaconNumberHttpHandler(db));
 		server.createContext("/api/v1/computeBaconPath", new ComputeBaconPathHttpHandler(db));
+		server.createContext("/api/v1/addRating", new AddRatingHttpHandler(db));
+		server.createContext("/api/v1/GetMovieByRating", new GetMovieByRatingHttpHandler(db));
+		server.createContext("/api/v1/GetMovieByRelease", new GetMovieByReleaseHttpHandler(db));
+		server.createContext("/api/v1/AddAward", new AddAwardHttpHandler(db));
+		server.createContext("/api/v1/GetActorByAward", new GetActorByAwardHttpHandler(db));
     }
     
     public static void closeServer() {
@@ -108,6 +111,171 @@ class ResponseSender {
         os.write(response.getBytes());
         os.close();
 	}
+}
+class AddAwardHttpHandler implements HttpHandler {
+	private DBNew db;
+	private ResponseSender responseSender = new ResponseSender();
+	public AddAwardHttpHandler(DBNew db) {
+		this.db = db;
+	}
+	
+	@Override
+	public void handle(HttpExchange exchange) {
+		try {
+            System.out.println("Got an AddAward request!");
+            if("PUT".equals(exchange.getRequestMethod())) {
+                 String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                 JSONValidationData validation = validateJSON(requestBody);
+                    
+                    if(validation.valid) {
+                        try {
+                            JSONObject jsonObject = new JSONObject(requestBody);
+                            String actorId = jsonObject.getString("actorId");
+                            String award = jsonObject.getString("award");
+                        
+                            if(db.getActorById(actorId) == null) {
+                                String response = "PUT request failed; Actor does not exist. Data: " + requestBody;
+                                responseSender.sendResponseAndClose(exchange, 404, response);
+                            }else {
+                                db.addAward(actorId, award);
+                                String response = "PUT request succesful. Data: " + requestBody;
+                                responseSender.sendResponseAndClose(exchange, 200, response);
+                                
+                            }
+                        }catch(JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }else {
+                        String response = "PUT request failed with the following message:\n"
+                                + validation.message
+                                +" Data: " + requestBody;
+                        responseSender.sendResponseAndClose(exchange, 400, response);
+                    }
+                }else {
+                    responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
+                }
+            }catch(IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Handle AddAward finished");
+        }
+        public JSONValidationData validateJSON(String json) {
+            
+            StringBuilder message = new StringBuilder();
+            boolean valid = true;
+            
+            JSONObject jsonObject;
+            String actorId = null;
+            String award = null;
+            
+            try {
+                jsonObject = new JSONObject(json);
+                actorId = jsonObject.optString("actorId");
+                award = jsonObject.optString("award");
+
+                
+                if(actorId == null || actorId.isEmpty()) {
+                    valid = false;
+                    message.append("Validation failed: actorId is empty or not found\n");
+                }
+                
+                if(award == null || award.isEmpty()) {
+                    valid = false;
+                    message.append("Validation failed: award is empty or not found\n");
+                }
+                
+            } catch (JSONException e) {
+                message.append("Validation failed: JSON syntax error: " + e.getMessage());
+                return new JSONValidationData(false, message.toString());
+            }
+            
+            return new JSONValidationData(valid, message.toString());
+            
+        }
+
+}
+class AddRatingHttpHandler implements HttpHandler {
+    private DBNew db;
+    private ResponseSender responseSender = new ResponseSender();
+    
+    public AddRatingHttpHandler(DBNew db) {
+        this.db = db;
+    }
+    
+    @Override
+    public void handle(HttpExchange exchange) {
+        try {
+            System.out.println("Got an AddRating request!");
+            if("PUT".equals(exchange.getRequestMethod())) {
+                 String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                 JSONValidationData validation = validateJSON(requestBody);
+                    
+                    if(validation.valid) {
+                        try {
+                            JSONObject jsonObject = new JSONObject(requestBody);
+                            String movieId = jsonObject.getString("movieId");
+                            String rating = jsonObject.getString("rating");
+                        
+                            if(db.getMovieById(movieId) == null) {
+                                String response = "PUT request failed; Movie does not exist. Data: " + requestBody;
+                                responseSender.sendResponseAndClose(exchange, 404, response);
+                            }else {
+                                db.addMovieRating(movieId, rating);
+                                String response = "PUT request succesful. Data: " + requestBody;
+                                responseSender.sendResponseAndClose(exchange, 200, response);
+                                
+                            }
+                        }catch(JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }else {
+                        String response = "PUT request failed with the following message:\n"
+                                + validation.message
+                                +" Data: " + requestBody;
+                        responseSender.sendResponseAndClose(exchange, 400, response);
+                    }
+                }else {
+                    responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
+                }
+            }catch(IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Handle AddRating finished");
+        }
+        public JSONValidationData validateJSON(String json) {
+            
+            StringBuilder message = new StringBuilder();
+            boolean valid = true;
+            
+            JSONObject jsonObject;
+            String movieId = null;
+            String rating = null;
+            
+            try {
+                jsonObject = new JSONObject(json);
+                movieId = jsonObject.optString("movieId");
+                rating = jsonObject.optString("rating");
+
+                
+                if(movieId == null || movieId.isEmpty()) {
+                    valid = false;
+                    message.append("Validation failed: movieId is empty or not found\n");
+                }
+                
+                if(rating == null || rating.isEmpty()) {
+                    valid = false;
+                    message.append("Validation failed: rating is empty or not found\n");
+                }
+                
+            } catch (JSONException e) {
+                message.append("Validation failed: JSON syntax error: " + e.getMessage());
+                return new JSONValidationData(false, message.toString());
+            }
+            
+            return new JSONValidationData(valid, message.toString());
+            
+        }
+   
 }
 
 /**
@@ -405,179 +573,8 @@ class AddRelationshipHttpHandler implements HttpHandler {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-        	/*
-        } catch (Exception e) {
-            try {
-				responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-        }
-        */
     }
 
-}
-
-
-
-/* //code with duplicate functionality from vader
-class AddMovieHttpHandler implements HttpHandler {
-
-    private DBNew db;
-
-    public AddMovieHttpHandler(DBNew db) {
-        this.db = db;
-    }
-
-    @Override
-    public void handle(HttpExchange exchange) {
-        try {
-            System.out.println("Got an AddMovie request!");
-
-            if ("PUT".equals(exchange.getRequestMethod())) {
-
-                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                System.out.println("Request body:" + requestBody);
-
-                JSONObject jsonObject = new JSONObject(requestBody);
-                String movieId = jsonObject.getString("movieId");
-                String name = jsonObject.getString("name");
-                String release = jsonObject.getString("release");
-
-                db.addMovie(movieId, name, release);
-
-                // Respond with success message
-                String response = "PUT request successful. Data: " + requestBody;
-                responseSender.sendResponseAndClose(exchange, 200, response);
-
-            } else {
-                responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
-            }
-
-        } catch (JSONException e) {
-            responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format");
-        } 
-
-	catch (IOException e) {
-            responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error");
-        }
-
-        System.out.println("Handle AddMovie finished");
-
-    }
-
-    private void responseSender.sendResponseAndClose(HttpExchange exchange, int code, String response) throws IOException {
-        exchange.sendResponseHeaders(code, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
-    }
-}
-*/
-
-/* //nonworking code from sharpjd
-class AddRelationShipHttpHandler implements HttpHandler {
-
-	private DBNew db;
-	private ResponseSender responseSender = new ResponseSender();
-	
-	public AddRelationShipHttpHandler(DBNew db) {
-		this.db = db;
-	}
-	
-	@Override
-	public void handle(HttpExchange exchange) {
-		
-		try {
-			System.out.println("Got an AddRelationship request!");
-			
-			if ("PUT".equals(exchange.getRequestMethod())) {
-				
-	            String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-	            System.out.println("Request body:" + requestBody);
-	            
-	            JSONValidationData validation = validateJSON(requestBody);
-	            
-	            if(validation.valid) {
-	            	
-	            	try {
-	        			JSONObject jsonObject = new JSONObject(requestBody);
-	        			String actorId = jsonObject.getString("actorId");
-	        			String movieId = jsonObject.getString("movieId");
-	        			
-	        			String movieRelease = jsonObject.optString("release"); //can be empty
-	        			
-	        			boolean actorExists = db.actorExists(actorId);
-	        			System.out.println(actorExists);
-	        			boolean movieExists = db.movieExists(movieId);
-	        			System.out.println(movieExists);
-	        			
-	        			boolean relationAlreadyExists = db.actedInRelationshipExists(actorId, movieId);
-	        			
-	        			System.out.println(relationAlreadyExists);
-	        			
-	        			StringBuilder response = new StringBuilder();
-	        			
-	        			if(!actorExists || !movieExists || relationAlreadyExists) {
-	        				response.append("PUT request failed with the following message:\n");
-	        				
-	        				if(!actorExists) {
-		        				response.append("the actorId specified does not exist.\n");
-		        			}
-		        			
-		        			if(!movieExists) {
-		        				response.append("the movieId specified does not exist.\n");
-		        			}
-		        			
-		        			if(relationAlreadyExists) {
-		        				response.append("the relationship already exists.\n");
-		        			}
-		        			
-		        			response.append("Data: ");
-		        			response.append(requestBody);
-		        			response.append("\n");
-		        			
-		        			if(!actorExists || !movieExists)
-		        				responseSender.sendResponseAndClose(exchange, 404, response.toString());
-		        			else if(relationAlreadyExists)
-		        				responseSender.sendResponseAndClose(exchange, 400, response.toString());
-		        			else 
-		        				throw new RuntimeException("why are we here");
-		        			
-	        			} else {
-        					db.addActedInRelationship(actorId, movieId);
-	        			}
-	        			
-	        		} catch (JSONException e) {
-	        			e.printStackTrace();
-	        		}
-	            	
-	            	//respond with success message
-	                String response = "PUT request successful. Data: " + requestBody;
-	                responseSender.sendResponseAndClose(exchange, 200, response);
-	            } else {
-	            	
-	            	//respond with fail message
-	            	String response = "PUT request failed with the following message:\n"
-	            			+ validation.message
-	            			+ " Data: " + requestBody;
-	            	responseSender.sendResponseAndClose(exchange, 400, response);
-	            }
-	            
-	            
-	        } else {
-	        	responseSender.sendResponseAndClose(exchange, 405, "Only PUT is supported");
-	        }
-			
-		} catch(IOException e) {
-			e.printStackTrace();
-		}
-		
-		System.out.println("Handle AddMovie finished");
-		
-	}
-	
 	public JSONValidationData validateJSON(String json) {
 		
 		StringBuilder message = new StringBuilder();
@@ -612,7 +609,7 @@ class AddRelationShipHttpHandler implements HttpHandler {
 		
 	}
 }
-*/
+
 
 /**
  * API endpoint for getActor.
@@ -730,6 +727,108 @@ class GetMovieHttpHandler implements HttpHandler {
     }
 }
 
+class GetMovieByRatingHttpHandler implements HttpHandler {
+	private DBNew db;
+	private ResponseSender responseSender = new ResponseSender();
+	public GetMovieByRatingHttpHandler(DBNew db) {
+		this.db = db;
+	}
+	
+	@Override
+	public void handle(HttpExchange exchange) throws IOException {
+		if("GET".equals(exchange.getRequestMethod())) {
+			String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			try {
+				JSONObject jsonObject = new JSONObject(requestBody);
+				String rating = jsonObject.getString("rating");
+				if(rating == null || rating.isEmpty()) {
+					responseSender.sendResponseAndClose(exchange, 400, "Missing required field: rating");
+					return;
+				}
+				List<String> movies = db.getMoviesWithRating(rating);
+				
+				JSONObject jsonResponse = new JSONObject();
+				jsonResponse.put("movies", movies);
+				responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
+			}catch(JSONException e) {
+				responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
+			}catch(Exception e) {
+				responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: "+ e.getMessage());
+			}
+		}else {
+			responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+		}
+	}
+}
+
+class GetMovieByReleaseHttpHandler implements HttpHandler {
+	private DBNew db;
+	private ResponseSender responseSender = new ResponseSender();
+	
+	public GetMovieByReleaseHttpHandler(DBNew db) {
+		this.db = db;
+	}
+	
+	@Override
+	public void handle(HttpExchange exchange) throws IOException {
+		if("GET".equals(exchange.getRequestMethod())) {
+			String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			try {
+				JSONObject jsonObject = new JSONObject(requestBody);
+				String release = jsonObject.getString("release");
+				if(release == null || release.isEmpty()) {
+					responseSender.sendResponseAndClose(exchange, 400, "Missing required field: release");
+					return;
+				}
+				List<String> movies = db.getMoviesByReleaseYear(release);
+				
+				JSONObject jsonResponse = new JSONObject();
+				jsonResponse.put("movies", movies);
+				responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
+			}catch(JSONException e) {
+				responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
+			}catch(Exception e) {
+				responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: "+ e.getMessage());
+			}
+		}else {
+			responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+		}
+	}
+}
+class GetActorByAwardHttpHandler implements HttpHandler {
+	private DBNew db;
+	private ResponseSender responseSender = new ResponseSender();
+	
+	public GetActorByAwardHttpHandler(DBNew db) {
+		this.db = db;
+	}
+	
+	@Override
+	public void handle(HttpExchange exchange) throws IOException {
+		if("GET".equals(exchange.getRequestMethod())) {
+			String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			try {
+				JSONObject jsonObject = new JSONObject(requestBody);
+				String award = jsonObject.getString("award");
+				if(award == null || award.isEmpty()) {
+					responseSender.sendResponseAndClose(exchange, 400, "Missing required field: award");
+					return;
+				}
+				List<String> actors = db.getActorsByAward(award);
+				
+				JSONObject jsonResponse = new JSONObject();
+				jsonResponse.put("recipients", actors);
+				responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
+			}catch(JSONException e) {
+				responseSender.sendResponseAndClose(exchange, 400, "Invalid JSON format: " + e.getMessage());
+			}catch(Exception e) {
+				responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: "+ e.getMessage());
+			}
+		}else {
+			responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
+		}
+	}
+}
 
 /**
  * API endpoint for hasRelationship.
@@ -793,44 +892,8 @@ class HasRelationshipHttpHandler implements HttpHandler {
         }
     }
 
-    
-    /**
-	 * Validates a JSON string for this API endpoint.
-	 * 
-	 * Criteria:
-	 * 1. The syntax is correct
-	 * 3. actorId is not null or empty
-	 *  
-	 * @param json the JSON string to validate
-	 * @return a JSONValidationData object with property "valid" set to true if it's valid according to the aforementioned criteria, false otherwise
-	 */
-	public JSONValidationData validateJSON(String json) {
-		
-		StringBuilder message = new StringBuilder();
-		boolean valid = true;
-		
-		JSONObject jsonObject;
-        String actorId = null;
-        
-        try {
-			jsonObject = new JSONObject(json);
-			actorId = jsonObject.optString("actorId");
-	        
-	        if(actorId == null || actorId.isEmpty()) {
-	        	valid = false;
-	        	message.append("Validation failed: actorId is empty or not found\n");
-	        }
-			
-		} catch (JSONException e) {
-			message.append("Validation failed: JSON syntax error: " + e.getMessage());
-			return new JSONValidationData(false, message.toString());
-		}
-        
-        return new JSONValidationData(valid, message.toString());
-		
-	}
-
 }
+
 
 /**
  * API endpoint for ComputeBaconNumber
@@ -1018,187 +1081,3 @@ class ComputeBaconPathHttpHandler implements HttpHandler {
 }
 
 
-/**
- * API endpoint for getMoviesWithRating
- */
-class GetMoviesWithRatingHttpHandler implements HttpHandler {
-
-    private DBNew db;
-    ResponseSender responseSender = new ResponseSender();
-
-    public GetMoviesWithRatingHttpHandler(DBNew db) {
-        this.db = db;
-    }
-
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        if ("GET".equals(exchange.getRequestMethod())) {
-
-            String query = exchange.getRequestURI().getQuery();
-            Map<String, String> params = queryToMap(query);
-            String minRating = params.get("minRating");
-
-            if(minRating == null || minRating.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: minRating");
-                return;
-            }
-
-            try{
-                // check if minRating is numeric
-                Float.parseFloat(minRating);
-
-                String moviesJson = db.getMoviesWithRating(minRating);
-
-                if(moviesJson != null) {
-                    responseSender.sendResponseAndClose(exchange, 200, moviesJson);
-                } else {
-                    responseSender.sendResponseAndClose(exchange, 404, "No movies found with the given rating");
-                }   
-            } catch (NumberFormatException e) {
-                responseSender.sendResponseAndClose(exchange, 400, "Invalid format for minRating: must be a numeric value");
-            } catch (Exception e) {
-                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
-            }            
-        } else {
-            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
-        }
-    }
-
-    private Map<String, String> queryToMap(String query) {
-        Map<String, String> result = new HashMap<>();
-		if(query == null || query.isEmpty()) return result;
-
-        for (String param : query.split("&")) {
-            String[] entry = param.split("=", 2);
-			if(entry.length == 2) {
-				result.put(entry[0], entry[1]);
-			}
-			else if(entry.length == 1) {
-				result.put(entry[0], "");
-			}
-        }
-        return result;
-    }
-}
-
-/**
- * API endpoint for getMoviesByReleaseYear
- */
-class GetMoviesByReleaseYearHttpHandler implements HttpHandler {
-
-    private DBNew db;
-    ResponseSender responseSender = new ResponseSender();
-
-    public GetMoviesByReleaseYearHttpHandler(DBNew db) {
-        this.db = db;
-    }
-
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        if ("GET".equals(exchange.getRequestMethod())) {
-
-            String query = exchange.getRequestURI().getQuery();
-            Map<String, String> params = queryToMap(query);
-            String year = params.get("year");
-
-            if(year == null || year.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: year");
-                return;
-            }
-
-            try{
-                // check if year is numeric
-                Float.parseFloat(year);
-
-                String moviesJson = db.getMoviesByReleaseYear("year");
-
-                if(moviesJson != null) {
-                    responseSender.sendResponseAndClose(exchange, 200, moviesJson);
-                } else {
-                    responseSender.sendResponseAndClose(exchange, 404, "No movies found with the given year");
-                }   
-            } catch (NumberFormatException e) {
-                responseSender.sendResponseAndClose(exchange, 400, "Invalid format for minRating: must be a numeric value");
-            } catch (Exception e) {
-                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
-            }            
-        } else {
-            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
-        }
-    }
-
-    private Map<String, String> queryToMap(String query) {
-        Map<String, String> result = new HashMap<>();
-		if(query == null || query.isEmpty()) return result;
-
-        for (String param : query.split("&")) {
-            String[] entry = param.split("=", 2);
-			if(entry.length == 2) {
-				result.put(entry[0], entry[1]);
-			}
-			else if(entry.length == 1) {
-				result.put(entry[0], "");
-			}
-        }
-        return result;
-    }
-}
-
-/**
- * API endpoint for getActorsByAward
- */
-class GetActorsByAwardHttpHandler implements HttpHandler {
-
-    private DBNew db;
-    ResponseSender responseSender = new ResponseSender();
-
-    public GetActorsByAwardHttpHandler(DBNew db) {
-        this.db = db;
-    }
-
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        if ("GET".equals(exchange.getRequestMethod())) {
-
-            String query = exchange.getRequestURI().getQuery();
-            Map<String, String> params = queryToMap(query);
-            String year = params.get("award");
-
-            if(year == null || year.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: award");
-                return;
-            }
-
-            try{
-
-                String actorsJson = db.getActorsByAward("award");
-
-                if(actorsJson != null) {
-                    responseSender.sendResponseAndClose(exchange, 200, actorsJson);
-                } else {
-                    responseSender.sendResponseAndClose(exchange, 404, "No actors found with the given award");
-                }
-            } catch (Exception e) {
-                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
-            }            
-        } else {
-            responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
-        }
-    }
-
-    private Map<String, String> queryToMap(String query) {
-        Map<String, String> result = new HashMap<>();
-		if(query == null || query.isEmpty()) return result;
-
-        for (String param : query.split("&")) {
-            String[] entry = param.split("=", 2);
-			if(entry.length == 2) {
-				result.put(entry[0], entry[1]);
-			}
-			else if(entry.length == 1) {
-				result.put(entry[0], "");
-			}
-        }
-        return result;
-    }
-}
