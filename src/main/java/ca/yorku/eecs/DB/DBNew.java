@@ -32,40 +32,6 @@ public class DBNew {
 		}
 	}
 
-/*
-	public void addRandomAwardToActors() {
-	    List<String> awards = Arrays.asList("Best Actor", "Best Supporting Actor", "Lifetime Achievement");
-	    Random random = new Random();
-	    String query = "MATCH (a:Actor) RETURN a.actorId AS actorId";
-
-	    try (Session session = DBUtil.getSession()) {
-	        List<Record> actors = session.run(query).list();
-	        for (Record actor : actors) {
-	            String actorId = actor.get("actorId").asString();
-	            String randomAward = awards.get(random.nextInt(awards.size()));
-
-	            String updateQuery = "MATCH (a:Actor {actorId: $actorId}) " +
-	                                 "SET a.awards = coalesce(a.awards, []) + $randomAward";
-
-	            session.run(updateQuery, parameters("actorId", actorId, "randomAward", randomAward));
-	        }
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	    }
-	}
-	
-	public void addMovieRating(String movieId, String newRating) {
-		try(Session session = DBUtil.getSession()){
-			Transaction tx = session.beginTransaction();
-			Statement query = new Statement("MATCH (m:Movie {movieId: $movieId}) SET m.rating = $rating", 
-					Map.of("movieId", movieId, "rating", String.format("%.1f", newRating)));
-			StatementResult result = tx.run(query);
-			
-			System.out.println("Statement result: " + result.consume());
-			tx.success();
-		}
-	}
-	*/
 	
 	/**
 	 * Sets the rating of a Movie with the specified title.
@@ -76,11 +42,13 @@ public class DBNew {
 		try(Session session = DBUtil.getSession()){
 			Transaction tx = session.beginTransaction();
 			Statement query = new Statement("MATCH (m:Movie {movieId: $movieId}) SET m.rating = $rating", 
-					Map.of("movieId", movieId, "rating", String.format("%.1f", newRating)));
+					Map.of("movieId", movieId, "rating", newRating));
 			StatementResult result = tx.run(query);
 			
 			System.out.println("Statement result: " + result.consume());
 			tx.success();
+			tx.close();
+			session.close();
 		}
 	}
 
@@ -90,24 +58,26 @@ public class DBNew {
 	 * @param minRating
 	 * @return
 	 */
-	public String getMoviesWithRating(String minRating) {
-		try(Session session = DBUtil.getSession()){
-			float fminRating = Float.parseFloat(minRating);
-			StatementResult result = session.run("MATCH (m:Movie) WHERE m.rating >= $rating RETURN m.name AS name", Map.of("rating", String.format("%.1f", fminRating)));
-			JSONArray jsonArray = new JSONArray();
+	public List<String> getMoviesWithRating(String minRating) {
+		try(Session session = DBUtil.getSession()) {
+			Transaction tx = session.beginTransaction();
+			StatementResult result = tx.run("MATCH (m:Movie) "
+				+ "WHERE toFloat(m.rating) >= toFloat($rating) "
+				+ "RETURN m.movieId AS movieId, m.name AS name, m.rating AS rating", 
+				Map.of("rating", minRating)
+			);
+			List<String> movies = new ArrayList<>();
 			while(result.hasNext()) {
-				Record record = result.next();
-				JSONObject jsonObject = new JSONObject();
-				try {
-					jsonObject.put("name", record.get("name").asString());
-					jsonObject.put("movieId", record.get("movieId").asString());
-				}catch(JSONException e) {
-					e.printStackTrace();
-				}
-				jsonArray.put(jsonObject);
+				Record record = result.next();					
+				movies.add(record.get("movieId").asString());
+				movies.add(record.get("name").asString());
+				movies.add(record.get("rating").asString());
 			}
-			return jsonArray.length() > 0 ? jsonArray.toString() : null;
-		}
+			tx.success();
+			tx.close();
+			session.close();
+			return movies;
+		}		
 	}
 	
 	/**
@@ -115,23 +85,26 @@ public class DBNew {
 	 * @param year
 	 * @return
 	 */
-	public String getMoviesByReleaseYear(String year){
-		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (m:Movie) WHERE m.release = $release RETURN m.name AS name", Map.of("release", year));
-			JSONArray jsonArray = new JSONArray();
+	public List<String> getMoviesByReleaseYear(String year){
+		try(Session session = DBUtil.getSession()) {
+			Transaction tx = session.beginTransaction();
+			StatementResult result = tx.run("MATCH (m:Movie) "
+				+ "WHERE m.release = $release "
+				+ "RETURN m.movieId AS movieId, m.name AS name, m.release AS release", 
+				Map.of("release", year)
+			);
+			List<String> movies = new ArrayList<>();
 			while(result.hasNext()) {
-				Record record = result.next();
-				JSONObject jsonObject = new JSONObject();
-				try {
-					jsonObject.put("name", record.get("name").asString());
-					jsonObject.put("movieId", record.get("movieId").asString());
-				} catch(JSONException e) {
-					e.printStackTrace();
-				}
-				jsonArray.put(jsonObject);
+				Record record = result.next();					
+				movies.add(record.get("movieId").asString());
+				movies.add(record.get("name").asString());
+				movies.add(record.get("release").asString());
 			}
-			return jsonArray.length() > 0 ? jsonArray.toString() : null;
-		}
+			tx.success();
+			tx.close();
+			session.close();
+			return movies;
+		}		
 	}
 	
 	/**
@@ -142,11 +115,13 @@ public class DBNew {
 	public void addAward(String actorId, String award) {
 		try(Session session = DBUtil.getSession()){
 			Transaction tx = session.beginTransaction();
-			Statement query = new Statement("MATCH (a:Actor {actorId: $actorId}) SET a.awards += $award",
+			Statement query = new Statement("MATCH (a:Actor {actorId: $actorId}) SET a.award = $award",
 	                Map.of("actorId", actorId, "award", award));	
 			StatementResult result = tx.run(query);
 			System.out.println("Statement result: " + result.consume());
 			tx.success();
+			tx.close();
+			session.close();
 		}
 	}
 	
@@ -155,22 +130,25 @@ public class DBNew {
 	 * @param award The name of the award
 	 * @return
 	 */
-	public String getActorsByAward(String award){
-		try(Session session = DBUtil.getSession()){
-			StatementResult result = session.run("MATCH (a:Actor) WHERE $award IN a.awards RETURN a.name AS name, a.actorId AS actorId", Map.of("award", award));
-			JSONArray jsonArray = new JSONArray();
+	public List<String> getActorsByAward(String award){
+		try(Session session = DBUtil.getSession()) {
+			Transaction tx = session.beginTransaction();
+			StatementResult result = tx.run("MATCH (a:Actor) "
+				+ "WHERE a.award = $award "
+				+ "RETURN a.actorId AS actorId, a.name AS name, a.award AS award", 
+				Map.of("award", award)
+			);
+			List<String> movies = new ArrayList<>();
 			while(result.hasNext()) {
-				Record record = result.next();
-				JSONObject jsonObject = new JSONObject();
-				try {
-					jsonObject.put("name", record.get("name").asString());
-					jsonObject.put("actorId", record.get("actorId").asString());
-				} catch(JSONException e) {
-					e.printStackTrace();
-				}
-				jsonArray.put(jsonObject);
+				Record record = result.next();					
+				movies.add(record.get("actorId").asString());
+				movies.add(record.get("name").asString());
+				movies.add(record.get("award").asString());
 			}
-			return jsonArray.length() > 0 ? jsonArray.toString() : null;
+			tx.success();
+			tx.close();
+			session.close();
+			return movies;
 		}
 	}
 	
@@ -201,6 +179,8 @@ public class DBNew {
 			System.out.println("Statement result: " + result.consume()); //^^maybe something to do with lazy initialization?
 			
 			transaction.success();
+			transaction.close();
+			session.close();
 		}
 	}
 	
@@ -380,9 +360,6 @@ public class DBNew {
             return null; // In case of JSON processing error
         }
     }
-    
-    
-
 
     /**
 	 * Whether the specified Actor (by ID) has an :ACTED_IN relationship with the specified Movie (by ID)
@@ -479,29 +456,5 @@ public class DBNew {
 	        return actors;
 	    }
 	}
-   /*
-   public String getActorById(String actorId) {
-       try (Session session = DBUtil.getSession()) {    
-           StatementResult result = session.run("MATCH (a:Actor {actorId: $actorId}) RETURN a.name AS name, a.actorId AS actorId", Map.of("actorId", actorId));
 
-           if (result.hasNext()) {
-               Record record = result.next();
-               JSONObject jsonObject = new JSONObject();
-                  try {
-                      jsonObject.put("name", record.get("name").asString());
-                      jsonObject.put("actorId", record.get("actorId").asString());
-                       } catch (JSONException e) {
-                           // TODO Auto-generated catch block
-                           e.printStackTrace();
-                       }
-                       return jsonObject.toString();
-           }
-
-           //case if actor is not found
-           else {
-               return null;
-           }    
-       }
-   }
-   */
 }
