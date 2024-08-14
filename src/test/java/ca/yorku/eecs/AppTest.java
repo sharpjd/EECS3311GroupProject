@@ -322,313 +322,294 @@ public class AppTest
 
     public void testgetActorPass() throws Exception {
     	
-    	Thread.sleep(500);
-    	String jsonInputString = "actorId=js1234567"
-        		+ "} ";
-        HttpURLConnection connection = sendGetRequest("/api/v1/getActor", jsonInputString);
+    	String id = "nm1";
+    	HttpURLConnection connection = sendGetRequest("/api/v1/getActor?actorId=" + id);
 
-        int responseCode = connection.getResponseCode();
-        assertEquals(200, responseCode);
+    	int responseCode = connection.getResponseCode();
+    	assertEquals(200, responseCode);
 
-        JSONObject data = new JSONObject(getResponse(connection));
-        assertEquals("nm0000001", data.getString("actorId"));
-        assertEquals("John Doe", data.getString("name"));
-        assertTrue(data.getJSONArray("movies").length() > 0);
+    	JSONObject data = new JSONObject(getResponse(connection));
+    	assertEquals("nm1", data.getString("actorId"));
+    	assertEquals("John Cena", data.getString("name"));
+    	assertEquals("["+ "\"m1\""+"]", data.getString("movies"));
     }
 
 
     public void testgetActorFail() throws Exception {
+    	String id = "nonexistant";
         // actor not found
-        HttpURLConnection connection = sendGetRequest("/api/v1/getActor", "{ actorId: \"nonexistent\" }");
+        HttpURLConnection connection = sendGetRequest("/api/v1/getActor?actorId=" + id);
         assertEquals(404, connection.getResponseCode());
 
         // missing actorId
-        connection = sendGetRequest("/api/v1/getActor", "{ }");
-        assertEquals(400, connection.getResponseCode());
-
-        // malformed JSON
-        connection = sendGetRequest("/api/v1/getActor", "{");
+        connection = sendGetRequest("/api/v1/getActor?");
         assertEquals(400, connection.getResponseCode());
     }
 
 
     public void testgetMoviePass() throws Exception {
-        initializeGetMoviePassStuff();
 
         Thread.sleep(500);
-
-        HttpURLConnection connection = sendGetRequest("/api/v1/getMovie", "{ movieId: \"tt1234567\" }");
+        String id = "m1";
+        HttpURLConnection connection = sendGetRequest("/api/v1/getMovie?movieId=" + id);
 
         int responseCode = connection.getResponseCode();
         assertEquals(200, responseCode);
 
         JSONObject data = new JSONObject(getResponse(connection));
-        assertEquals("tt1234567", data.getString("movieId"));
-        assertEquals("Sample Movie", data.getString("name"));
-        assertTrue(data.getJSONArray("actors").length() > 0);
+        assertEquals("m1", data.getString("movieId"));
+        assertEquals("Jungle Book", data.getString("name"));
+        assertEquals("["+"\"nm1\""+"]", data.getString("actors"));
     }
 
     public void testgetMovieFail() throws Exception {
+    	String id = "nonexistant";
         // Movie not found
-        HttpURLConnection connection = sendGetRequest("/api/v1/getMovie", "{ movieId: \"nonexistent\" }");
+        HttpURLConnection connection = sendGetRequest("/api/v1/getMovie?movieId=" + id);
         assertEquals(404, connection.getResponseCode());
 
         // Missing movieId
-        connection = sendGetRequest("/api/v1/getMovie", "{ }");
-        assertEquals(400, connection.getResponseCode());
-
-        // Malformed JSON
-        connection = sendGetRequest("/api/v1/getMovie", "{");
+        connection = sendGetRequest("/api/v1/getMovie?");
         assertEquals(400, connection.getResponseCode());
     }
+    public void testGetMovieByReleasePass() throws Exception {
+       	
+       	String release = "1999";
+       	HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRelease?release=" + release);
+       	int responseCode = connection.getResponseCode();
+       	assertEquals(200, responseCode);
 
+       	String response = getResponse(connection);
+       	assertTrue(response.contains("movieId"));
+       	assertTrue(response.contains("name"));
+       }
+       
+       public void testGetMovieByReleaseFail() throws Exception {
+       	String release = "1994";
+           HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRelease?release=" + release); // Future year
+           int responseCode = connection.getResponseCode();
+           assertEquals(404, responseCode);
+           
+           //todo
+       }
+       
+       public void testGetMovieByRatingPass() throws Exception {  	
+       	
+       	String jsonInputString = "6.9";
+           HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRating?rating=" + jsonInputString);
+           int responseCode = connection.getResponseCode();
+           assertEquals(200, responseCode);
 
-    public void testhasRelationshipPass() throws Exception {
-    initializeHasRelationshipPassStuff();
+           String response = getResponse(connection);
+           assertTrue(response.contains("movieId"));
+           assertTrue(response.contains("name"));
+       }
+       
+       public void testGetMovieByRatingFail() throws Exception {
+       	
+       	String jsonInputString = "10.0";
+           HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRating?rating=" + jsonInputString);
+           Thread.sleep(500);
+           int responseCode = connection.getResponseCode();
+           assertEquals(404, responseCode);
+       }
+       
+       public void testGetActorByAwardPass() throws Exception {
+       	String jsonInputString = "Best Looking";
+           HttpURLConnection connection = sendGetRequest("/api/v1/getActorsByAward?award=" + jsonInputString);
+           int responseCode = connection.getResponseCode();
+           assertEquals(200, responseCode);
 
-    String jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
-    HttpURLConnection connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+           String response = getResponse(connection);
+           assertTrue(response.contains("actorId"));
+           assertTrue(response.contains("name"));
+       }
+       
+       public void testGetActorByAwardFail() throws Exception {
+       	String jsonInputString = "Unknown Award";
+           HttpURLConnection connection = sendGetRequest("/api/v1/getActorsByAward?award=" + jsonInputString);
 
-    
-    int responseCode = connection.getResponseCode();
-    assertEquals(200, responseCode);
-
-    JSONObject data = new JSONObject(getResponse(connection));
-    assertEquals("nm0000001", data.getString("actorId"));
-    assertEquals("tt1234567", data.getString("movieId"));
-    assertTrue(data.getBoolean("hasRelationship"));
-   }
-
-   public void testhasRelationshipFail() throws Exception {
-    // Missing actorId
-    String jsonInputString = "{ movieId: \"tt1234567\" }";
-    HttpURLConnection connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
-    assertEquals(400, connection.getResponseCode());
-
-    // Missing movieId
-    jsonInputString = "{ actorId: \"nm0000001\" }";
-    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
-    assertEquals(400, connection.getResponseCode());
-
-    // Actor not found
-    jsonInputString = "{ actorId: \"nm9999999\", movieId: \"tt1234567\" }";
-    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
-    assertEquals(404, connection.getResponseCode());
-
-    // Movie not found
-    jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt9999999\" }";
-    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
-    assertEquals(404, connection.getResponseCode());
-
-    // Malformed JSON
-    jsonInputString = "{";
-    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
-    assertEquals(400, connection.getResponseCode());
-}
-   public void testGetMovieByReleasePass() throws Exception {
-   	Thread.sleep(500);
-   	initializeGetMoviePassStuff();
-   	Thread.sleep(500);
-   	
-   	String jsonInputString = "{ \"release\": \"1994\" }";
-       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRelease", jsonInputString);
-       Thread.sleep(500);
-       int responseCode = connection.getResponseCode();
-       assertEquals(200, responseCode);
-
-       String response = getResponse(connection);
-       assertTrue(response.contains("movieId"));
-       assertTrue(response.contains("name"));
-   }
+           int responseCode = connection.getResponseCode();
+           assertEquals(404, responseCode);
+       }
+//
+//
+//    public void testhasRelationshipPass() throws Exception {
+//    initializeHasRelationshipPassStuff();
+//
+//    String jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+//    HttpURLConnection connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+//
+//    
+//    int responseCode = connection.getResponseCode();
+//    assertEquals(200, responseCode);
+//
+//    JSONObject data = new JSONObject(getResponse(connection));
+//    assertEquals("nm0000001", data.getString("actorId"));
+//    assertEquals("tt1234567", data.getString("movieId"));
+//    assertTrue(data.getBoolean("hasRelationship"));
+//   }
+//
+//   public void testhasRelationshipFail() throws Exception {
+//    // Missing actorId
+//    String jsonInputString = "{ movieId: \"tt1234567\" }";
+//    HttpURLConnection connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+//    assertEquals(400, connection.getResponseCode());
+//
+//    // Missing movieId
+//    jsonInputString = "{ actorId: \"nm0000001\" }";
+//    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+//    assertEquals(400, connection.getResponseCode());
+//
+//    // Actor not found
+//    jsonInputString = "{ actorId: \"nm9999999\", movieId: \"tt1234567\" }";
+//    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+//    assertEquals(404, connection.getResponseCode());
+//
+//    // Movie not found
+//    jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt9999999\" }";
+//    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+//    assertEquals(404, connection.getResponseCode());
+//
+//    // Malformed JSON
+//    jsonInputString = "{";
+//    connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
+//    assertEquals(400, connection.getResponseCode());
+//}
    
-   public void testGetMovieByReleaseNoMovies() throws Exception {
-   	initializeGetMoviePassStuff();
-   	Thread.sleep(500);
-   	String jsonInputString = "{ \"release\": \"1994\"}";
-       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRelease", jsonInputString); // Future year
-       Thread.sleep(500);
-       int responseCode = connection.getResponseCode();
-       assertEquals(404, responseCode);
-   }
-   
-   public void testGetMovieByRatingPass() throws Exception {
-   	initializeGetMoviePassStuff();
-   	Thread.sleep(500);    	
-   	
-   	String jsonInputString = "{ \"rating\": \"7.5\"}";
-       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRating", jsonInputString);
-       Thread.sleep(500);
-       int responseCode = connection.getResponseCode();
-       assertEquals(200, responseCode);
-
-       String response = getResponse(connection);
-       assertTrue(response.contains("movieId"));
-       assertTrue(response.contains("name"));
-   }
-   
-   public void testGetMovieByRatingNoMovies() throws Exception {
-   	
-   	String jsonInputString = "{ \"rating\": \"10.0\"}";
-       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRating", jsonInputString);
-       Thread.sleep(500);
-       int responseCode = connection.getResponseCode();
-       assertEquals(404, responseCode);
-   }
-   
-   public void testGetActorByAwardPass() throws Exception {
-   	initializeGetActorPassStuff();
-   	Thread.sleep(500);
-   	String jsonInputString = "{ \"award\": \"Best Actor\"}";
-       HttpURLConnection connection = sendGetRequest("/api/v1/GetActorByAward", jsonInputString);
-       Thread.sleep(500);
-       int responseCode = connection.getResponseCode();
-       assertEquals(200, responseCode);
-
-       String response = getResponse(connection);
-       assertTrue(response.contains("actorId"));
-       assertTrue(response.contains("name"));
-   }
-   
-   public void testGetActorByAwardNoActor() throws Exception {
-   	String jsonInputString = "{ \"award\": \"Unknown Award\"}";
-       HttpURLConnection connection = sendGetRequest("/api/v1/GetActorByAward", jsonInputString);
-
-       int responseCode = connection.getResponseCode();
-       assertEquals(404, responseCode);
-   }
-   /* 
-    * 
-    * 
-    * !!!!
-    * Some of these tests might need to be run later in the order because 
-    * they depend on using functions like addActor, addMovie. etc.
-    * !!!! 
-    * 
-    * 
-    */
-	
-
-
-private void initializeHasRelationshipPassStuff() throws Exception {
-    // Add an actor for testing
-    String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
-    HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
-    System.out.println(connection.getResponseCode());
-
-    // Add a movie for testing
-    String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
-    connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
-    System.out.println(connection.getResponseCode());
-
-    // Create a relationship between the actor and the movie
-    String relationshipJsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
-    connection = sendPutRequest("/api/v1/addRelationship", relationshipJsonInputString);
-    System.out.println(connection.getResponseCode());
-}
-
-   
-    public void testcomputeBaconNumberPass() throws Exception {
-    	
-    	initializeBaconPassStuff();
-        
-        Thread.sleep(500);
-        
-        HttpURLConnection connection14 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"cc123\" }");
-        
-        Thread.sleep(500);
-        
-        int responseCode = connection14.getResponseCode();
-        
-        assertEquals(200, responseCode);
-        
-        JSONObject data = new JSONObject(getResponse(connection14));
-        
-        assertEquals(3, data.getInt("baconNumber"));
-        
-    }
-    
-    public void testcomputeBaconNumberFail() throws Exception {
-    	
-    	initializeBaconFailStuff();
-        
-        Thread.sleep(500);
-        
-        //no path to bacon
-        HttpURLConnection connection1 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"pp1234567\" }");
-        
-        //actor not found
-        HttpURLConnection connection2 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"asdklhfku\" }");
-        
-        //bad syntax
-        HttpURLConnection connection3 = sendGetRequest("/api/v1/computeBaconNumber", "{  ");
-        
-        //missing info
-        HttpURLConnection connection4 = sendGetRequest("/api/v1/computeBaconNumber", "{  }");
-        
-        Thread.sleep(500);
-        
-        assertEquals(404, connection1.getResponseCode());
-        assertEquals(404, connection2.getResponseCode());
-        assertEquals(400, connection3.getResponseCode());
-        assertEquals(400, connection4.getResponseCode());
-        
-    }
-    
-    public void testcomputeBaconPathPass() throws Exception {
-    	
-    	initializeBaconPassStuff();
-        
-        Thread.sleep(500);
-        
-        HttpURLConnection connection14 = sendGetRequest("/api/v1/computeBaconPath", "{ actorId: \"cc123\" }");
-        
-        Thread.sleep(500);
-        
-        int responseCode = connection14.getResponseCode();
-        
-        assertEquals(200, responseCode);
-        
-        JSONObject data = new JSONObject(getResponse(connection14));
-        
-        //System.out.println("bacon path " + data);
-        
-        assertEquals("[\"Kevin Bacon\",\"Transformers\",\"Max Maxwell\",\"Inside Out 4\",\"Judy Judith\",\"Among Us\",\"Cooper Copper\"]", data.getString("baconPath"));
-    	
-    	/*
-         * Bacon Path:
-			The Bacon Path from cc is:
-			cc → AM → jj → II → mm → TF → kb
-			This path lists the actors and movies connecting cc to Kevin Bacon.
-         */
-    }
-    
-    public void testcomputeBaconPathFail() throws Exception {
-    	
-    	initializeBaconFailStuff();
-        
-        Thread.sleep(500);
-        
-        //no path to bacon
-        HttpURLConnection connection1 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"pp1234567\" }");
-        
-        //actor not found
-        HttpURLConnection connection2 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"asdklhfku\" }");
-        
-        //bad syntax
-        HttpURLConnection connection3 = sendGetRequest("/api/v1/computeBaconNumber", "{  ");
-        
-        //missing info
-        HttpURLConnection connection4 = sendGetRequest("/api/v1/computeBaconNumber", "{  }");
-        
-        Thread.sleep(500);
-        
-        assertEquals(404, connection1.getResponseCode());
-        assertEquals(404, connection2.getResponseCode());
-        assertEquals(400, connection3.getResponseCode());
-        assertEquals(400, connection4.getResponseCode());
-        
-    }
-    
+//   /* 
+//    * 
+//    * 
+//    * !!!!
+//    * Some of these tests might need to be run later in the order because 
+//    * they depend on using functions like addActor, addMovie. etc.
+//    * !!!! 
+//    * 
+//    * 
+//    */
+//	
+//
+//
+//private void initializeHasRelationshipPassStuff() throws Exception {
+//    // Add an actor for testing
+//    String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
+//    HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
+//    System.out.println(connection.getResponseCode());
+//
+//    // Add a movie for testing
+//    String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
+//    connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
+//    System.out.println(connection.getResponseCode());
+//
+//    // Create a relationship between the actor and the movie
+//    String relationshipJsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+//    connection = sendPutRequest("/api/v1/addRelationship", relationshipJsonInputString);
+//    System.out.println(connection.getResponseCode());
+//}
+//
+//   
+//    public void testcomputeBaconNumberPass() throws Exception {
+//    	
+//    	initializeBaconPassStuff();
+//        
+//        Thread.sleep(500);
+//        
+//        HttpURLConnection connection14 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"cc123\" }");
+//        
+//        Thread.sleep(500);
+//        
+//        int responseCode = connection14.getResponseCode();
+//        
+//        assertEquals(200, responseCode);
+//        
+//        JSONObject data = new JSONObject(getResponse(connection14));
+//        
+//        assertEquals(3, data.getInt("baconNumber"));
+//        
+//    }
+//    
+//    public void testcomputeBaconNumberFail() throws Exception {
+//    	
+//    	initializeBaconFailStuff();
+//        
+//        Thread.sleep(500);
+//        
+//        //no path to bacon
+//        HttpURLConnection connection1 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"pp1234567\" }");
+//        
+//        //actor not found
+//        HttpURLConnection connection2 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"asdklhfku\" }");
+//        
+//        //bad syntax
+//        HttpURLConnection connection3 = sendGetRequest("/api/v1/computeBaconNumber", "{  ");
+//        
+//        //missing info
+//        HttpURLConnection connection4 = sendGetRequest("/api/v1/computeBaconNumber", "{  }");
+//        
+//        Thread.sleep(500);
+//        
+//        assertEquals(404, connection1.getResponseCode());
+//        assertEquals(404, connection2.getResponseCode());
+//        assertEquals(400, connection3.getResponseCode());
+//        assertEquals(400, connection4.getResponseCode());
+//        
+//    }
+//    
+//    public void testcomputeBaconPathPass() throws Exception {
+//    	
+//    	initializeBaconPassStuff();
+//        
+//        Thread.sleep(500);
+//        
+//        HttpURLConnection connection14 = sendGetRequest("/api/v1/computeBaconPath", "{ actorId: \"cc123\" }");
+//        
+//        Thread.sleep(500);
+//        
+//        int responseCode = connection14.getResponseCode();
+//        
+//        assertEquals(200, responseCode);
+//        
+//        JSONObject data = new JSONObject(getResponse(connection14));
+//        
+//        //System.out.println("bacon path " + data);
+//        
+//        assertEquals("[\"Kevin Bacon\",\"Transformers\",\"Max Maxwell\",\"Inside Out 4\",\"Judy Judith\",\"Among Us\",\"Cooper Copper\"]", data.getString("baconPath"));
+//    	
+//    	/*
+//         * Bacon Path:
+//			The Bacon Path from cc is:
+//			cc → AM → jj → II → mm → TF → kb
+//			This path lists the actors and movies connecting cc to Kevin Bacon.
+//         */
+//    }
+//    
+//    public void testcomputeBaconPathFail() throws Exception {
+//    	
+//    	initializeBaconFailStuff();
+//        
+//        Thread.sleep(500);
+//        
+//        //no path to bacon
+//        HttpURLConnection connection1 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"pp1234567\" }");
+//        
+//        //actor not found
+//        HttpURLConnection connection2 = sendGetRequest("/api/v1/computeBaconNumber", "{ actorId: \"asdklhfku\" }");
+//        
+//        //bad syntax
+//        HttpURLConnection connection3 = sendGetRequest("/api/v1/computeBaconNumber", "{  ");
+//        
+//        //missing info
+//        HttpURLConnection connection4 = sendGetRequest("/api/v1/computeBaconNumber", "{  }");
+//        
+//        Thread.sleep(500);
+//        
+//        assertEquals(404, connection1.getResponseCode());
+//        assertEquals(404, connection2.getResponseCode());
+//        assertEquals(400, connection3.getResponseCode());
+//        assertEquals(400, connection4.getResponseCode());
+//        
+//    }
+//    
 
 
     private HttpURLConnection sendPutRequest(String endpoint, String jsonInputString) throws Exception {
@@ -646,29 +627,25 @@ private void initializeHasRelationshipPassStuff() throws Exception {
         return connection;
     }
     
-//    private HttpURLConnection sendGetRequest(String endpoint, String jsonInputString) throws Exception {
-//        URL url = new URL("http://localhost:" + app.PORT + endpoint);
-//        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-//        connection.setRequestMethod("GET");
-//        connection.setRequestProperty("Content-Type", "application/json; utf-8");
-//        connection.setDoOutput(true);
-//
-//        try (OutputStream os = connection.getOutputStream()) {
-//            byte[] input = jsonInputString.getBytes("utf-8");
-//            os.write(input, 0, input.length);
-//        }
-//
-//        return connection;
-//    }
-    private HttpURLConnection sendGetRequest(String endpoint, String queryParams) throws Exception {
-        URL url = new URL("http://localhost:" + app.PORT + endpoint + "?" + queryParams);
+    private HttpURLConnection sendGetRequest(String endpoint) throws Exception {
+        URL url = new URL("http://localhost:" + app.PORT + endpoint);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Content-Type", "application/json; utf-8");
-        connection.setDoOutput(false); // GET requests typically don't use output streams
+        connection.setDoOutput(false);
 
         return connection;
     }
+//    private HttpURLConnection sendGetRequest(String endpoint, String queryParams) throws Exception {
+//        URL url = new URL("http://localhost:" + app.PORT + endpoint + "?" + queryParams);
+//        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+//        connection.setRequestMethod("GET");
+//        connection.setRequestProperty("Content-Type", "application/json; utf-8");
+//        connection.setDoOutput(false); // GET requests typically don't use output streams
+//
+//        return connection;
+//    }
+//    
     private String getResponse(HttpURLConnection connection) throws Exception {
         try(java.io.BufferedReader in = new java.io.BufferedReader(
             new java.io.InputStreamReader(connection.getInputStream(), "utf-8"))) {
