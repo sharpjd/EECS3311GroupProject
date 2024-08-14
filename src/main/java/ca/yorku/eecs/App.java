@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.sound.sampled.DataLine;
+
 import org.json.*;
 
 public class App //starter code
@@ -785,10 +787,24 @@ class GetMoviesByRatingHttpHandler implements HttpHandler {
             Map<String, String> params = queryToMap(query);
             String rating = params.get("rating");
 
+            //use json body in case it's not in the uri
             if(rating == null || rating.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: rating");
-                return;
+            	try {
+            		String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            		JSONObject data = new JSONObject(requestBody);
+            		rating = data.optString("rating");
+            	} catch (JSONException e) {
+            		responseSender.sendResponseAndClose(exchange, 400, "JSON error: " + e.getMessage());
+            	}
+            	
             }
+            
+            //still empty
+            if(rating == null || rating.isEmpty()) {
+            	responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: rating");
+            	return;
+            }
+            	
 
             try{
 
@@ -844,9 +860,22 @@ class GetMoviesByReleaseHttpHandler implements HttpHandler {
             Map<String, String> params = queryToMap(query);
             String release = params.get("release");
 
+            //use json body in case it's not in the uri
             if(release == null || release.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: release");
-                return;
+            	try {
+            		String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            		JSONObject data = new JSONObject(requestBody);
+            		release = data.optString("release");
+            	} catch (JSONException e) {
+            		responseSender.sendResponseAndClose(exchange, 400, "JSON error: " + e.getMessage());
+            	}
+            	
+            }
+            
+            //still empty
+            if(release == null || release.isEmpty()) {
+            	responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: release");
+            	return;
             }
 
             try{
@@ -903,9 +932,22 @@ class GetActorsByAwardHttpHandler implements HttpHandler {
             Map<String, String> params = queryToMap(query);
             String award = params.get("award");
 
+            //use json body in case it's not in the uri
             if(award == null || award.isEmpty()) {
-                responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: award");
-                return;
+            	try {
+            		String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            		JSONObject data = new JSONObject(requestBody);
+            		award = data.optString("award");
+            	} catch (JSONException e) {
+            		responseSender.sendResponseAndClose(exchange, 400, "JSON error: " + e.getMessage());
+            	}
+            	
+            }
+            
+            //still empty
+            if(award == null || award.isEmpty()) {
+            	responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: award");
+            	return;
             }
 
             try{
