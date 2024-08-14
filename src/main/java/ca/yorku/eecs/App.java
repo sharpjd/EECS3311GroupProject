@@ -64,10 +64,10 @@ public class App //starter code
 		server.createContext("/api/v1/computeBaconNumber", new ComputeBaconNumberHttpHandler(db));
 		server.createContext("/api/v1/computeBaconPath", new ComputeBaconPathHttpHandler(db));
 		server.createContext("/api/v1/addRating", new AddRatingHttpHandler(db));
-		server.createContext("/api/v1/GetMovieByRating", new GetMovieByRatingHttpHandler(db));
-		server.createContext("/api/v1/GetMovieByRelease", new GetMovieByReleaseHttpHandler(db));
-		server.createContext("/api/v1/AddAward", new AddAwardHttpHandler(db));
-		server.createContext("/api/v1/GetActorByAward", new GetActorByAwardHttpHandler(db));
+		server.createContext("/api/v1/getMovieByRating", new GetMovieByRatingHttpHandler(db));
+		server.createContext("/api/v1/getMovieByRelease", new GetMovieByReleaseHttpHandler(db));
+		server.createContext("/api/v1/addAward", new AddAwardHttpHandler(db));
+		server.createContext("/api/v1/getActorByAward", new GetActorByAwardHttpHandler(db));
     }
     
     public static void closeServer() {
@@ -136,9 +136,12 @@ class AddAwardHttpHandler implements HttpHandler {
                             if(db.getActorById(actorId) == null) {
                                 String response = "PUT request failed; Actor does not exist. Data: " + requestBody;
                                 responseSender.sendResponseAndClose(exchange, 404, response);
+                            }if(award == null || award.isEmpty()) {
+                            	String response = "PUT request failed; Award does not exist. Data: " + requestBody;
+                            	responseSender.sendResponseAndClose(exchange, 404, response);
                             }else {
                                 db.addAward(actorId, award);
-                                String response = "PUT request succesful. Data: " + requestBody;
+                                String response = "PUT request successful. Data: " + requestBody;
                                 responseSender.sendResponseAndClose(exchange, 200, response);
                                 
                             }
@@ -219,9 +222,12 @@ class AddRatingHttpHandler implements HttpHandler {
                             if(db.getMovieById(movieId) == null) {
                                 String response = "PUT request failed; Movie does not exist. Data: " + requestBody;
                                 responseSender.sendResponseAndClose(exchange, 404, response);
+                            }if(rating == null || rating.isEmpty()) {
+                            	String response = "PUT request failed; Rating does not exist. Data: " + requestBody;
+                                responseSender.sendResponseAndClose(exchange, 404, response);
                             }else {
                                 db.addMovieRating(movieId, rating);
-                                String response = "PUT request succesful. Data: " + requestBody;
+                                String response = "PUT request successful. Data: " + requestBody;
                                 responseSender.sendResponseAndClose(exchange, 200, response);
                                 
                             }
@@ -625,6 +631,7 @@ class GetActorHttpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+    	System.out.println("Got a GetActor request!");
         if ("GET".equals(exchange.getRequestMethod())) {
             String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
 
@@ -656,9 +663,7 @@ class GetActorHttpHandler implements HttpHandler {
 	    catch (Exception e) {
                 responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
-        } 
-	
-	else {
+        }else {
             responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
     }
