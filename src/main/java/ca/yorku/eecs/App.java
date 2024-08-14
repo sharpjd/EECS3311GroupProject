@@ -1056,38 +1056,68 @@ class ComputeBaconNumberHttpHandler implements HttpHandler {
         	
         	String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         	
-            JSONValidationData validation = validateJSON(requestBody);
+        	String actorId;
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            actorId = params.get("actorId");
+        	
 
-            if(validation.valid) {
-            	try {
-            		
-            		JSONObject data = new JSONObject(requestBody);
-            		String actorId = data.getString("actorId");
-            		
-                    int baconNumber = db.computeBaconNumber(actorId);
+        	try {
+        		
+        		//try using JSON if we didn't get it from the URI
+        		if(actorId == null) {
+        			
+        			JSONValidationData validation = validateJSON(requestBody);
+        			if(validation.valid==false) {
+        				responseSender.sendResponseAndClose(exchange, 400, "GET request failed; missing actorId, or JSON error: " + validation.message);
+        				return;
+        			}        			
+        			try {
+        				JSONObject data = new JSONObject(requestBody);
+        				actorId = data.getString("actorId");
+        			} catch (JSONException e) {
+        				
+        			}
+        		}
+        		
+                int baconNumber = db.computeBaconNumber(actorId);
 
-                    if (baconNumber == -1) {
-                        responseSender.sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
-                        return;
-                    }
-
-                    JSONObject jsonResponse = new JSONObject();
-                    jsonResponse.put("actorId", actorId);
-                    jsonResponse.put("baconNumber", baconNumber);
-
-                    responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
-                } catch (Exception e) {
-                    responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
+                if (baconNumber == -1) {
+                    responseSender.sendResponseAndClose(exchange, 404, "No path to Kevin Bacon found");
+                    return;
                 }
-            } else {
-            	responseSender.sendResponseAndClose(exchange, 400, "GET request failed with message: " + validation.message);
+
+                JSONObject jsonResponse = new JSONObject();
+                jsonResponse.put("actorId", actorId);
+                jsonResponse.put("baconNumber", baconNumber);
+
+                responseSender.sendResponseAndClose(exchange, 200, jsonResponse.toString());
+            } catch (Exception e) {
+                responseSender.sendResponseAndClose(exchange, 500, "Internal Server Error: " + e.getMessage());
             }
+            
             
             
         //} else {
         	//System.out.println("wrong requst");
             //responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         //}
+    }
+    
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+		if(query == null || query.isEmpty()) return result;
+
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=", 2);
+			if(entry.length == 2) {
+				result.put(entry[0], entry[1]);
+			}
+			else if(entry.length == 1) {
+				result.put(entry[0], "");
+			}
+        }
+        return result;
     }
     
     /**
