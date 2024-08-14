@@ -66,7 +66,7 @@ public class AppTest
     
     public void testaddActorPass() throws Exception {
     	
-    	Thread.sleep(1000); //prevents a null
+    	Thread.sleep(500); //prevents a null
     	
     	app.getDb().removeActor("js1234567"); //must remove it otherwise this test is not repeatable
     	
@@ -127,22 +127,124 @@ public class AppTest
         assertEquals(400, responseCode);
     }
     
-    
-    /* 
-     * 
-     * 
-     * !!!!
-     * Some of these tests might need to be run later in the order because 
-     * they depend on using functions like addActor, addMovie. etc.
-     * !!!! 
-     * 
-     * 
-     */
-	
-    public void testaddRelationshipPass() throws Exception {
-        initializeAddRelationshipPassStuff();
+    public void testaddMoviePass() throws Exception {
+    	
+    	Thread.sleep(500); //prevents a null
+    	
+    	app.getDb().removeMovie("tt1234567"); //must remove it otherwise this test is not repeatable
+    	
+        String jsonInputString = "{ "
+        		+ "movieId: \"tt1234567\", "
+        		+ "name: \"Sample Movie\", "
+        		+ "release: \"2024\" "
+        		+ "} ";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addMovie", jsonInputString);
 
-        String jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+        int responseCode = connection.getResponseCode();
+        
+        assertEquals(200, responseCode);
+
+        String response = getResponse(connection);
+        assertTrue(response.contains("PUT request successful"));
+    } 
+    
+    public void testaddMovieFail() throws Exception {
+    	
+    	//case 1
+        String jsonInputString = "{ " 
+        		+ "name: \"Sample Movie\", " //missing movieId
+        		+ "release: \"2024\" "
+        		+ "} ";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addMovie", jsonInputString);
+        
+        int responseCode = connection.getResponseCode();
+        
+        assertEquals(400, responseCode);
+        
+        //case 2
+        jsonInputString = "{ " 
+        		+ "movieId: \"tt1234567\" " //missing name 
+        		+ "} ";
+        connection = sendPutRequest("/api/v1/addMovie", jsonInputString);
+
+        responseCode = connection.getResponseCode();
+        
+        assertEquals(400, responseCode);
+        
+        //case 3
+        jsonInputString = "{ " 
+        		+ "" //missing all 
+        		+ "} ";
+        connection = sendPutRequest("/api/v1/addMovie", jsonInputString);
+
+        responseCode = connection.getResponseCode();
+        
+        assertEquals(400, responseCode);
+        
+        //case 4
+        jsonInputString = "{ " 
+        		+ "asdfasdf" //malformed syntax 
+        		+ " ";
+        connection = sendPutRequest("/api/v1/addActor", jsonInputString);
+
+        responseCode = connection.getResponseCode();
+        
+        assertEquals(400, responseCode);
+    }
+    
+    public void testAddRatingPass() throws Exception {
+    	Thread.sleep(500);
+        String jsonInputString = "{ "
+        		+ "movieId: \"tt1234567\", " 
+        		+ "rating: \"8.5\" "
+        		+ "} ";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addRating", jsonInputString);
+
+        int responseCode = connection.getResponseCode();
+        
+        assertEquals(200, responseCode);
+
+        String response = getResponse(connection);
+        assertTrue(response.contains("PUT request successful"));
+    }
+    
+    public void testAddRatingFail() throws Exception {
+        String jsonInputString = "{ \"rating\": \"8.5\" }";  // movieId is missing
+        HttpURLConnection connection = sendPutRequest("/api/v1/addRating", jsonInputString);
+
+        int responseCode = connection.getResponseCode();
+        assertEquals(400, responseCode);
+    }
+    
+    public void testAddAwardPass() throws Exception {
+    	Thread.sleep(500);
+        String jsonInputString = "{ "
+        		+ "actorId: \"nm0000001\", "
+        		+ "award: \"Best Actor\" "
+        		+"} ";
+        HttpURLConnection connection = sendPutRequest("/api/v1/addAward", jsonInputString);
+        int responseCode = connection.getResponseCode();
+        assertEquals(200, responseCode);
+
+        String response = getResponse(connection);
+        assertTrue(response.contains("PUT request successful"));
+    }
+    
+    public void testAddAwardFail() throws Exception {
+        String jsonInputString = "{ \"actorId\": \"nm0000001\" }";  // award is missing
+        HttpURLConnection connection = sendPutRequest("/api/v1/addAward", jsonInputString);
+
+        int responseCode = connection.getResponseCode();
+        assertEquals(400, responseCode);
+    }
+    
+        public void testaddRelationshipPass() throws Exception {
+        Thread.sleep(500);
+        app.getDb().removeActedInRelationship("nm0000001", "tt1234567");
+        String jsonInputString = "{ "
+        		+ "actorId: \"nm0000001\", "
+        		+ "movieId: \"tt1234567\" "
+        		+ "} ";
         HttpURLConnection connection = sendPutRequest("/api/v1/addRelationship", jsonInputString);
 
         int responseCode = connection.getResponseCode();
@@ -219,11 +321,11 @@ public class AppTest
 
 
     public void testgetActorPass() throws Exception {
-        initializeGetActorPassStuff();
-
-        Thread.sleep(500);
-
-        HttpURLConnection connection = sendGetRequest("/api/v1/getActor", "{ actorId: \"nm0000001\" }");
+    	
+    	Thread.sleep(500);
+    	String jsonInputString = "actorId=js1234567"
+        		+ "} ";
+        HttpURLConnection connection = sendGetRequest("/api/v1/getActor", jsonInputString);
 
         int responseCode = connection.getResponseCode();
         assertEquals(200, responseCode);
@@ -287,6 +389,7 @@ public class AppTest
     String jsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
     HttpURLConnection connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
 
+    
     int responseCode = connection.getResponseCode();
     assertEquals(200, responseCode);
 
@@ -322,6 +425,89 @@ public class AppTest
     connection = sendGetRequest("/api/v1/hasRelationship", jsonInputString);
     assertEquals(400, connection.getResponseCode());
 }
+   public void testGetMovieByReleasePass() throws Exception {
+   	Thread.sleep(500);
+   	initializeGetMoviePassStuff();
+   	Thread.sleep(500);
+   	
+   	String jsonInputString = "{ \"release\": \"1994\" }";
+       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRelease", jsonInputString);
+       Thread.sleep(500);
+       int responseCode = connection.getResponseCode();
+       assertEquals(200, responseCode);
+
+       String response = getResponse(connection);
+       assertTrue(response.contains("movieId"));
+       assertTrue(response.contains("name"));
+   }
+   
+   public void testGetMovieByReleaseNoMovies() throws Exception {
+   	initializeGetMoviePassStuff();
+   	Thread.sleep(500);
+   	String jsonInputString = "{ \"release\": \"1994\"}";
+       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRelease", jsonInputString); // Future year
+       Thread.sleep(500);
+       int responseCode = connection.getResponseCode();
+       assertEquals(404, responseCode);
+   }
+   
+   public void testGetMovieByRatingPass() throws Exception {
+   	initializeGetMoviePassStuff();
+   	Thread.sleep(500);    	
+   	
+   	String jsonInputString = "{ \"rating\": \"7.5\"}";
+       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRating", jsonInputString);
+       Thread.sleep(500);
+       int responseCode = connection.getResponseCode();
+       assertEquals(200, responseCode);
+
+       String response = getResponse(connection);
+       assertTrue(response.contains("movieId"));
+       assertTrue(response.contains("name"));
+   }
+   
+   public void testGetMovieByRatingNoMovies() throws Exception {
+   	
+   	String jsonInputString = "{ \"rating\": \"10.0\"}";
+       HttpURLConnection connection = sendGetRequest("/api/v1/GetMovieByRating", jsonInputString);
+       Thread.sleep(500);
+       int responseCode = connection.getResponseCode();
+       assertEquals(404, responseCode);
+   }
+   
+   public void testGetActorByAwardPass() throws Exception {
+   	initializeGetActorPassStuff();
+   	Thread.sleep(500);
+   	String jsonInputString = "{ \"award\": \"Best Actor\"}";
+       HttpURLConnection connection = sendGetRequest("/api/v1/GetActorByAward", jsonInputString);
+       Thread.sleep(500);
+       int responseCode = connection.getResponseCode();
+       assertEquals(200, responseCode);
+
+       String response = getResponse(connection);
+       assertTrue(response.contains("actorId"));
+       assertTrue(response.contains("name"));
+   }
+   
+   public void testGetActorByAwardNoActor() throws Exception {
+   	String jsonInputString = "{ \"award\": \"Unknown Award\"}";
+       HttpURLConnection connection = sendGetRequest("/api/v1/GetActorByAward", jsonInputString);
+
+       int responseCode = connection.getResponseCode();
+       assertEquals(404, responseCode);
+   }
+   /* 
+    * 
+    * 
+    * !!!!
+    * Some of these tests might need to be run later in the order because 
+    * they depend on using functions like addActor, addMovie. etc.
+    * !!!! 
+    * 
+    * 
+    */
+	
+
 
 private void initializeHasRelationshipPassStuff() throws Exception {
     // Add an actor for testing
@@ -460,21 +646,29 @@ private void initializeHasRelationshipPassStuff() throws Exception {
         return connection;
     }
     
-    private HttpURLConnection sendGetRequest(String endpoint, String jsonInputString) throws Exception {
-        URL url = new URL("http://localhost:" + app.PORT + endpoint);
+//    private HttpURLConnection sendGetRequest(String endpoint, String jsonInputString) throws Exception {
+//        URL url = new URL("http://localhost:" + app.PORT + endpoint);
+//        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+//        connection.setRequestMethod("GET");
+//        connection.setRequestProperty("Content-Type", "application/json; utf-8");
+//        connection.setDoOutput(true);
+//
+//        try (OutputStream os = connection.getOutputStream()) {
+//            byte[] input = jsonInputString.getBytes("utf-8");
+//            os.write(input, 0, input.length);
+//        }
+//
+//        return connection;
+//    }
+    private HttpURLConnection sendGetRequest(String endpoint, String queryParams) throws Exception {
+        URL url = new URL("http://localhost:" + app.PORT + endpoint + "?" + queryParams);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Content-Type", "application/json; utf-8");
-        connection.setDoOutput(true);
-
-        try (OutputStream os = connection.getOutputStream()) {
-            byte[] input = jsonInputString.getBytes("utf-8");
-            os.write(input, 0, input.length);
-        }
+        connection.setDoOutput(false); // GET requests typically don't use output streams
 
         return connection;
     }
-
     private String getResponse(HttpURLConnection connection) throws Exception {
         try(java.io.BufferedReader in = new java.io.BufferedReader(
             new java.io.InputStreamReader(connection.getInputStream(), "utf-8"))) {
