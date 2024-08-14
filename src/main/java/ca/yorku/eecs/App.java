@@ -633,12 +633,27 @@ class GetActorHttpHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         System.out.println("Got a GetActor request!");
         if ("GET".equals(exchange.getRequestMethod())) {
+        	
             // Extract query parameters from the URL
-            String query = exchange.getRequestURI().getQuery();
+    		String query = exchange.getRequestURI().getQuery();
             Map<String, String> params = queryToMap(query);
-
             String actorId = params.get("actorId");
-
+        
+            //secondary option: extract from body
+            if(actorId == null) {
+            	String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                JSONObject jsonObject;
+    			try {
+    				jsonObject = new JSONObject(requestBody);
+    			} catch (JSONException e) {
+    				responseSender.sendResponseAndClose(exchange, 400, "JSON Syntax Error: " + e.getMessage());
+    				return;
+    			}
+                String actorId_JSON = jsonObject.optString("actorId");
+                actorId = actorId_JSON; //use body in case request is empty
+            }
+            
+            //both extraction methods failed
             if (actorId == null || actorId.isEmpty()) {
                 responseSender.sendResponseAndClose(exchange, 400, "Missing required field: actorId");
                 return;
@@ -664,6 +679,7 @@ class GetActorHttpHandler implements HttpHandler {
     // Helper method to convert query string to a Map
     private Map<String, String> queryToMap(String query) {
         Map<String, String> result = new HashMap<>();
+        if(query==null) return result;
         for (String param : query.split("&")) {
             String[] entry = param.split("=");
             if (entry.length > 1) {
@@ -697,6 +713,20 @@ class GetMovieHttpHandler implements HttpHandler {
             Map<String, String> params = queryToMap(query);
 
             String movieId = params.get("movieId");
+            
+            //secondary option: extract from body
+            String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            if(movieId==null) {
+            	JSONObject jsonObject;
+    			try {
+    				jsonObject = new JSONObject(requestBody);
+    			} catch (JSONException e) {
+    				responseSender.sendResponseAndClose(exchange, 400, "JSON Syntax Error: " + e.getMessage());
+    				return;
+    			}
+                String movieId_JSON = jsonObject.optString("movieId");
+                movieId = movieId_JSON; //use body in case request is empty
+            }
 
             if (movieId == null || movieId.isEmpty()) {
                 responseSender.sendResponseAndClose(exchange, 400, "Missing required field: movieId");
@@ -722,6 +752,7 @@ class GetMovieHttpHandler implements HttpHandler {
     // Helper method to convert query string to a Map
     private Map<String, String> queryToMap(String query) {
         Map<String, String> result = new HashMap<>();
+        if(query==null) return result;
         for (String param : query.split("&")) {
             String[] entry = param.split("=");
             if (entry.length > 1) {
