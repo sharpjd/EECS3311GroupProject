@@ -957,13 +957,25 @@ class HasRelationshipHttpHandler implements HttpHandler {
         if ("GET".equals(exchange.getRequestMethod())) {
             String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
 
+            String actorId, movieId;
+            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> params = queryToMap(query);
+            actorId = params.get("actorId");
+            movieId = params.get("movieId");
+            
             try {
-                JSONObject jsonObject = new JSONObject(requestBody);
-                String actorId = jsonObject.optString("actorId");
-                String movieId = jsonObject.optString("movieId");
+            	
+            	if(actorId==null || movieId==null) {
+                    JSONObject jsonObject = new JSONObject(requestBody);
+                    
+                    if(actorId == null)
+                    	actorId = jsonObject.optString("actorId");
+                    if(movieId == null)
+                    	movieId = jsonObject.optString("movieId");
+            	}
 
                 if (actorId == null || actorId.isEmpty() || movieId == null || movieId.isEmpty()) {
-                    responseSender.sendResponseAndClose(exchange, 400, "Missing required fields: actorId, movieId");
+                    responseSender.sendResponseAndClose(exchange, 400, "Missing one or more required fields: actorId, movieId");
                     return;
                 }
 
@@ -1001,6 +1013,22 @@ class HasRelationshipHttpHandler implements HttpHandler {
 	else {
             responseSender.sendResponseAndClose(exchange, 405, "Only GET is supported");
         }
+    }
+    
+    private Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<>();
+		if(query == null || query.isEmpty()) return result;
+
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=", 2);
+			if(entry.length == 2) {
+				result.put(entry[0], entry[1]);
+			}
+			else if(entry.length == 1) {
+				result.put(entry[0], "");
+			}
+        }
+        return result;
     }
 
 }
