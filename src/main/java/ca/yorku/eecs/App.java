@@ -138,15 +138,19 @@ class AddAwardHttpHandler implements HttpHandler {
                             if(db.getActorById(actorId) == null) {
                                 String response = "PUT request failed; Actor does not exist. Data: " + requestBody;
                                 responseSender.sendResponseAndClose(exchange, 404, response);
-                            }if(award == null || award.isEmpty()) {
+                                return;
+                            }
+                            
+                            if(award == null || award.isEmpty()) {
                             	String response = "PUT request failed; Award does not exist. Data: " + requestBody;
                             	responseSender.sendResponseAndClose(exchange, 404, response);
-                            }else {
-                                db.addAward(actorId, award);
-                                String response = "PUT request successful. Data: " + requestBody;
-                                responseSender.sendResponseAndClose(exchange, 200, response);
-                                
+                            	return;
                             }
+                            
+                            db.addAward(actorId, award);
+                            String response = "PUT request successful. Data: " + requestBody;
+                            responseSender.sendResponseAndClose(exchange, 200, response);
+                                
                         }catch(JSONException e) {
                             e.printStackTrace();
                         }
@@ -162,7 +166,6 @@ class AddAwardHttpHandler implements HttpHandler {
             }catch(IOException e) {
                 e.printStackTrace();
             }
-            System.out.println("Handle AddAward finished");
         }
         public JSONValidationData validateJSON(String json) {
             
@@ -224,7 +227,7 @@ class AddRatingHttpHandler implements HttpHandler {
                             if(db.getMovieById(movieId) == null) {
                                 String response = "PUT request failed; Movie does not exist. Data: " + requestBody;
                                 responseSender.sendResponseAndClose(exchange, 404, response);
-                            }if(rating == null || rating.isEmpty()) {
+                            } else if(rating == null || rating.isEmpty()) {
                             	String response = "PUT request failed; Rating does not exist. Data: " + requestBody;
                                 responseSender.sendResponseAndClose(exchange, 404, response);
                             }else {

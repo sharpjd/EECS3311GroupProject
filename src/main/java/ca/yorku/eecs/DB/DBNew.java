@@ -147,12 +147,15 @@ public class DBNew {
 	 * @return
 	 */
 	public String getActorsByAward(String award){
+		
+		//award.replace('+', ' '); //URLs have plus signs in place of spaces
+		
 		try(Session session = DBUtil.getSession()) {
 			Transaction tx = session.beginTransaction();
 			StatementResult result = tx.run("MATCH (a:Actor) "
-				+ "WHERE a.award = $award "
+				+ "WHERE a.award = $desiredAward "
 				+ "RETURN a.actorId AS actorId, a.name AS name, a.award AS award", 
-				Map.of("award", award)
+				Map.of("desiredAward", award)
 			);
 			if(!result.hasNext()) {
 				return null;

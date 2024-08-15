@@ -193,9 +193,12 @@ public class AppTest
     }
     
     public void testAddRatingPass() throws Exception {
+    	
+    	sendPutRequest("/api/v1/addMovie", " { movieId: \"cp2077\", name:\"Cyberpunk 2077\" }").getResponseCode();
+    	
     	Thread.sleep(500);
         String jsonInputString = "{ "
-        		+ "movieId: \"tt1234567\", " 
+        		+ "movieId: \"cp2077\", " 
         		+ "rating: \"8.5\" "
         		+ "} ";
         HttpURLConnection connection = sendPutRequest("/api/v1/addRating", jsonInputString);
@@ -217,9 +220,12 @@ public class AppTest
     }
     
     public void testAddAwardPass() throws Exception {
+    	
+    	sendPutRequest("/api/v1/addActor", " { actorId: \"jc6789\", name:\"Jerry Cherry\" }").getResponseCode();
+    	
     	Thread.sleep(500);
         String jsonInputString = "{ "
-        		+ "actorId: \"nm0000001\", "
+        		+ "actorId: \"jc6789\", "
         		+ "award: \"Best Actor\" "
         		+"} ";
         HttpURLConnection connection = sendPutRequest("/api/v1/addAward", jsonInputString);
@@ -238,16 +244,20 @@ public class AppTest
         assertEquals(400, responseCode);
     }
     
-        public void testaddRelationshipPass() throws Exception {
+    public void testaddRelationshipPass() throws Exception {
         Thread.sleep(500);
-        app.getDb().removeActedInRelationship("nm0000001", "tt1234567");
+        app.getDb().removeActedInRelationship("oo6789", "tn890"); //otherwise test not repeatable
+       
+        sendPutRequest("/api/v1/addActor", " { actorId: \"oo6789\", name:\"Olivia Oliver\" }").getResponseCode();
+        sendPutRequest("/api/v1/addMovie", " { movieId: \"tn890\", name:\"TNMT\" }").getResponseCode();
+        
         String jsonInputString = "{ "
-        		+ "actorId: \"nm0000001\", "
-        		+ "movieId: \"tt1234567\" "
+        		+ "actorId: \"oo6789\", "
+        		+ "movieId: \"tn890\" "
         		+ "} ";
         HttpURLConnection connection = sendPutRequest("/api/v1/addRelationship", jsonInputString);
-
         int responseCode = connection.getResponseCode();
+        
         assertEquals(200, responseCode);
 
         String response = getResponse(connection);
@@ -279,16 +289,15 @@ public class AppTest
     // Initialization methods for setting up the test environment
     private void initializeGetActorPassStuff() throws Exception {
         // Add an actor for testing
-        String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
+        String jsonInputString = "{ actorId: \"jc1234567890\", name: \"John Cena\" }";
         HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
         System.out.println(connection.getResponseCode());
-
-        // Add a movie and relationship for testing
+        
         String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
         connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
         System.out.println(connection.getResponseCode());
-
-        String relationshipJsonInputString = "{ actorId: \"nm0000001\", movieId: \"tt1234567\" }";
+        
+        String relationshipJsonInputString = "{ actorId: \"jc1234567890\", movieId: \"tt1234567\" }";
         connection = sendPutRequest("/api/v1/addRelationship", relationshipJsonInputString);
         System.out.println(connection.getResponseCode());
     }
@@ -308,30 +317,21 @@ public class AppTest
         System.out.println(connection.getResponseCode());
     }
 
-    private void initializeAddRelationshipPassStuff() throws Exception {
-        // Add an actor and movie for testing
-        String jsonInputString = "{ actorId: \"nm0000001\", name: \"John Doe\" }";
-        HttpURLConnection connection = sendPutRequest("/api/v1/addActor", jsonInputString);
-        System.out.println(connection.getResponseCode());
-
-        String movieJsonInputString = "{ movieId: \"tt1234567\", name: \"Sample Movie\", release: \"2024\" }";
-        connection = sendPutRequest("/api/v1/addMovie", movieJsonInputString);
-        System.out.println(connection.getResponseCode());
-    }
-
 
     public void testgetActorPass() throws Exception {
     	
-    	String id = "nm1";
+    	initializeGetActorPassStuff();
+    	
+    	String id = "jc1234567890";
     	HttpURLConnection connection = sendGetRequest("/api/v1/getActor?actorId=" + id);
 
     	int responseCode = connection.getResponseCode();
     	assertEquals(200, responseCode);
 
     	JSONObject data = new JSONObject(getResponse(connection));
-    	assertEquals("nm1", data.getString("actorId"));
+    	assertEquals("jc1234567890", data.getString("actorId"));
     	assertEquals("John Cena", data.getString("name"));
-    	assertEquals("["+ "\"m1\""+"]", data.getString("movies"));
+    	assertEquals("["+ "\"tt1234567\""+"]", data.getString("movies"));
     }
 
 
@@ -348,7 +348,22 @@ public class AppTest
 
 
     public void testgetMoviePass() throws Exception {
+    	
+    	initializeGetMoviePassStuff();
+    	
+        Thread.sleep(500);
+        String id = "tt1234567";
+        HttpURLConnection connection = sendGetRequest("/api/v1/getMovie?movieId=" + id);
 
+        int responseCode = connection.getResponseCode();
+        assertEquals(200, responseCode);
+
+        JSONObject data = new JSONObject(getResponse(connection));
+        assertEquals("tt1234567", data.getString("movieId"));
+        assertEquals("Sample Movie", data.getString("name"));
+        assert(data.getString("actors").contains("nm0000001"));
+
+    	/*
         Thread.sleep(500);
         String id = "m1";
         HttpURLConnection connection = sendGetRequest("/api/v1/getMovie?movieId=" + id);
@@ -360,6 +375,7 @@ public class AppTest
         assertEquals("m1", data.getString("movieId"));
         assertEquals("Jungle Book", data.getString("name"));
         assertEquals("["+"\"nm1\""+"]", data.getString("actors"));
+        */
     }
 
     public void testgetMovieFail() throws Exception {
@@ -373,7 +389,10 @@ public class AppTest
         assertEquals(400, connection.getResponseCode());
     }
     public void testGetMovieByReleasePass() throws Exception {
-       	
+    	
+    	HttpURLConnection setup = sendPutRequest("/api/v1/addMovie", "{ movieId:\"zz1234567\", name:\"Zootopia\", release:\"1999\" }");
+    	setup.getResponseCode();    	
+    	
        	String release = "1999";
        	HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRelease?release=" + release);
        	int responseCode = connection.getResponseCode();
@@ -389,14 +408,17 @@ public class AppTest
            HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRelease?release=" + release); // Future year
            int responseCode = connection.getResponseCode();
            assertEquals(404, responseCode);
-           
-           //todo
        }
        
        public void testGetMovieByRatingPass() throws Exception {  	
        	
-       	String jsonInputString = "6.9";
-           HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRating?rating=" + jsonInputString);
+    	   sendPutRequest("/api/v1/addRating", "{ movieId:\"cc1337\", rating:\"6.9\" }").getResponseCode();
+    	   
+    	   HttpURLConnection setup = sendPutRequest("/api/v1/addMovie", "{ movieId:\"cc1337\", name:\"Chippi Chippi Chappa Chappa\", rating:\"6.9\" }");
+    	   setup.getResponseCode();
+    	   
+       	   String rating = "6.9";
+           HttpURLConnection connection = sendGetRequest("/api/v1/getMovieByRating?rating=" + rating);
            int responseCode = connection.getResponseCode();
            assertEquals(200, responseCode);
 
@@ -415,8 +437,23 @@ public class AppTest
        }
        
        public void testGetActorByAwardPass() throws Exception {
-       	String jsonInputString = "Best Looking";
-           HttpURLConnection connection = sendGetRequest("/api/v1/getActorsByAward?award=" + jsonInputString);
+    	   
+    	   String addPerson = "{ "
+           		+ "actorId: \"rc696969\", "
+           		+ "name: \"Ricardo Milos\""
+           		+ "} ";
+    	   sendPutRequest("/api/v1/addActor", addPerson).getResponseCode();
+    	   
+    	   String addAward = "{ "
+              		+ "actorId: \"rc696969\", "
+              		+ "award: \"Best Looking\""
+              		+ "} ";
+    	   
+    	   sendPutRequest("/api/v1/addAward", addAward).getResponseCode();
+    	   
+    	   
+       	String award = "Best%20Looking"; //%20 means space
+           HttpURLConnection connection = sendGetRequest("/api/v1/getActorsByAward?award=" + award);
            int responseCode = connection.getResponseCode();
            assertEquals(200, responseCode);
 
